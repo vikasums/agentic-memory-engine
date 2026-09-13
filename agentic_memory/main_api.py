@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import Optional, List
 from fastapi import FastAPI, BackgroundTasks, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from .engine import MemoryEngine
+from .models import Scope
+from .engine import MemoryEngine, create_engine
 from .pruner import MemoryPruner
 from .metrics import logger
 
@@ -14,43 +15,65 @@ pruner: Optional[MemoryPruner] = None
 async def lifespan(app: FastAPI):
     global engine, pruner
     logger.info("Initializing Memory Engine & Pruner...")
-    engine = MemoryEngine()
+    engine = create_engine()
     pruner = MemoryPruner(engine)
     pruner.start()
     yield
     if pruner:
         pruner.stop()
+    if engine:
+        engine.close()
 
 app = FastAPI(title="Agentic Memory Engine API", lifespan=lifespan)
 
 class IngestRequest(BaseModel):
     user_id: str
     text: str
+    scope: Scope = Scope.USER
 
 class RetrieveRequest(BaseModel):
     user_id: str
     query: str
     top_k: int = 5
     half_life_days: float = 30.0
+    scope: Scope = Scope.USER
 
 @app.post("/ingest", status_code=202)
 async def ingest(payload: IngestRequest, bg_tasks: BackgroundTasks):
     if not engine:
         raise HTTPException(500, "Engine uninitialized")
-    bg_tasks.add_task(engine.process_paragraph_async, payload.text, payload.user_id)
-    return {"status": "queued", "user_id": payload.user_id}
+    bg_tasks.add_task(engine.process_paragraph_async, payload.text, payload.user_id, payload.scope)
+    return {"status": "queued", "user_id": payload.user_id, "scope": payload.scope.value}
 
 @app.post("/retrieve")
 async def retrieve(payload: RetrieveRequest):
     if not engine:
         raise HTTPException(500, "Engine uninitialized")
-    memories = engine.retrieve_memories(
+    records = engine.retrieve_memories(
         query=payload.query,
         user_id=payload.user_id,
         top_k=payload.top_k,
-        half_life_days=payload.half_life_days
+        half_life_days=payload.half_life_days,
+        scope=payload.scope
     )
-    return {"user_id": payload.user_id, "query": payload.query, "memories": memories}
+    formatted_memories = [
+        {
+            "text": r.text,
+            "score": round(r.score, 4),
+            "similarity": round(r.similarity, 4),
+            "decay_factor": round(r.decay_factor, 4),
+            "source": r.source,
+            "timestamp": r.timestamp,
+            "scope": r.scope.value,
+            "age_days": round(r.age_days, 1)
+        }
+        for r in records
+    ]
+    return {
+        "user_id": payload.user_id,
+        "query": payload.query,
+        "memories": formatted_memories
+    }
 
 @app.get("/metrics")
 async def metrics():

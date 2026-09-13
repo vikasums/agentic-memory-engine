@@ -4,6 +4,8 @@ from . import config
 from .metrics import logger, time_operation
 
 class MemoryPruner:
+    """Background service that periodically prunes inactive or expired memories."""
+
     def __init__(self, engine, prune_interval_hours: float = config.PRUNE_INTERVAL_HOURS):
         self.engine = engine
         self.prune_interval_sec = prune_interval_hours * 3600.0
@@ -28,33 +30,18 @@ class MemoryPruner:
 
     @time_operation("pruning_execution")
     def prune_now(
-        self, 
-        inactive_retention_days: float = config.INACTIVE_RETENTION_DAYS, 
+        self,
+        inactive_retention_days: float = config.INACTIVE_RETENTION_DAYS,
         max_age_days: float = config.MAX_MEMORY_AGE_DAYS
     ) -> dict:
         now = time.time()
         inactive_cutoff = now - (inactive_retention_days * 86400.0)
         max_age_cutoff = now - (max_age_days * 86400.0)
 
-        with self.engine.conn:
-            cursor = self.engine.conn.cursor()
-            cursor.execute("""
-                DELETE FROM memory_keys 
-                WHERE (is_active = 0 AND updated_at < ?) 
-                   OR (updated_at < ?)
-            """, (inactive_cutoff, max_age_cutoff))
-            sql_deleted = cursor.rowcount
-
-        delete_filter = (
-            f"(is_active = false AND timestamp < {inactive_cutoff}) OR "
-            f"(timestamp < {max_age_cutoff})"
-        )
-        self.engine.table.delete(delete_filter)
-        self.engine.table.compact_files()
-        self.engine.table.cleanup_old_versions()
+        rows_deleted = self.engine.store.delete_expired(inactive_cutoff, max_age_cutoff)
 
         return {
-            "sqlite_rows_deleted": sql_deleted,
+            "sqlite_rows_deleted": rows_deleted,
             "inactive_cutoff": inactive_cutoff,
             "max_age_cutoff": max_age_cutoff
         }

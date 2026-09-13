@@ -1,14 +1,12 @@
+# Core dependencies (lean core)
 fastapi>=0.110.0
 uvicorn>=0.28.0
-lancedb>=0.6.0
-fastembed>=0.2.0
-pandas>=2.0.0
-numpy>=1.24.0
 pydantic>=2.0.0
-ollama>=0.1.0
+numpy>=1.24.0
 requests>=2.31.0
-openai>=1.0.0
-langchain-core>=0.3.0
-langchain-openai>=0.3.0
-langchain-ollama>=0.1.0
 
+# For local development with LanceDB & FastEmbed:
+# pip install -e ".[local,dev]"
+#
+# For production with OpenAI-compatible proxies & MariaDB:
+# pip install -e ".[openai,mariadb]"

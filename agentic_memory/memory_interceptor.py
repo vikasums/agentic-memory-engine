@@ -1,13 +1,15 @@
-import json
+import copy
 import requests
 from typing import List, Dict, Any, Optional
 
 class MemoryInterceptor:
-    def __init__(self, memory_api_base: str = "http://localhost:8000"):
-        self.memory_api_base = memory_api_base
+    """Intercepts LLM chat payloads to inject relevant long-term memory context hints."""
 
-    def _fetch_memories(self, user_id: str, query: str, top_k: int = 3) -> List[str]:
-        """Queries the local memory API for relevant active facts."""
+    def __init__(self, memory_api_base: str = "http://localhost:8000"):
+        self.memory_api_base = memory_api_base.rstrip("/")
+
+    def _fetch_memories(self, user_id: str, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Queries the memory API for relevant active facts with evidence metadata."""
         try:
             response = requests.post(
                 f"{self.memory_api_base}/retrieve",
@@ -17,22 +19,22 @@ class MemoryInterceptor:
                     "top_k": top_k,
                     "half_life_days": 30.0
                 },
-                timeout=2.0  # Fast sub-20ms lookup fallback
+                timeout=2.0
             )
             if response.status_code == 200:
                 return response.json().get("memories", [])
         except Exception:
-            # Fallback gracefully if memory API is unreachable
+            # Graceful fallback if memory API is temporarily unreachable
             pass
         return []
 
     def inject_context(
-        self, 
-        messages: List[Dict[str, str]], 
-        user_id: str, 
+        self,
+        messages: List[Dict[str, str]],
+        user_id: str,
         top_k: int = 3
     ) -> List[Dict[str, str]]:
-        """Intercepts messages payload and updates system prompt with user memories."""
+        """Intercepts messages payload and updates system prompt with user memory context hints."""
         # 1. Extract the latest user message to use as the query
         user_query = ""
         for msg in reversed(messages):
@@ -48,18 +50,28 @@ class MemoryInterceptor:
         if not memories:
             return messages
 
-        # 3. Format memories into a system block
-        memory_block = "\n".join([f"- {m}" for m in memories])
+        # 3. Format memories into an evidence hint block
+        formatted_hints = []
+        for m in memories:
+            if isinstance(m, dict):
+                text = m.get("text", "")
+                score = m.get("score", 1.0)
+                age_days = m.get("age_days", 0.0)
+                formatted_hints.append(f"- {text} (confidence: {score:.0%}, {age_days:.0f}d ago)")
+            else:
+                formatted_hints.append(f"- {m}")
+
+        memory_block = "\n".join(formatted_hints)
         system_instruction = (
-            f"\n\n[RELEVANT USER MEMORIES (Ground Truth)]\n"
+            f"\n\n[RELEVANT USER CONTEXT (Hints - Not database ground truth)]\n"
             f"{memory_block}\n"
-            f"Use the above facts to personalize your answer without explicitly mentioning you retrieved them."
+            f"Use the above hints to personalize your answer if relevant, without explicitly claiming certainty."
         )
 
         # 4. Inject into existing system prompt or insert a new system message
-        messages_copy = [dict(m) for m in messages]
+        messages_copy = copy.deepcopy(messages)
         system_msg_idx = next(
-            (i for i, m in enumerate(messages_copy) if m.get("role") == "system"), 
+            (i for i, m in enumerate(messages_copy) if m.get("role") == "system"),
             None
         )
 

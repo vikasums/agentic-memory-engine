@@ -1,103 +1,168 @@
 # Agentic Memory Engine
 
-A lightweight, hybrid long-term memory engine designed for LLM agents and assistant personalization. It extracts structured facts from conversations, stores them in vector space with semantic indexing, and retrieves relevant context with a time-decay algorithm.
+A lightweight, pluggable long-term memory framework designed for LLM agents, personalized assistants, and multi-tenant applications.
 
-## Features
+The engine extracts structured atomic facts from natural language, indexes them in vector storage with relational metadata key-versioning, and retrieves context ranked with exponential time decay.
 
-- **Hybrid Storage**: Uses SQLite for structured relational fact keys and LanceDB for lightning-fast vector similarity search.
-- **Asynchronous Ingestion**: Ingests paragraphs of text in a background thread to prevent blocking agent execution.
-- **Time-Decay Ranking**: Ranks memories using a combination of vector similarity and memory age (half-life decay).
-- **Auto-Injection Interceptor**: Includes a standard interceptor to automatically scan user queries, retrieve memories, and inject them into system prompts.
-- **Multi-User Isolation**: Safely namespaces database storage and vector indexes by user ID to prevent cross-user context leakage.
+---
+
+## Key Features & Architecture
+
+- **Pluggable Storage Abstraction (`MemoryStore`)**:
+  - `SQLiteLanceDBStore` — Zero-config local storage combining SQLite for fact key-versioning and LanceDB for vector search.
+  - `MariaDBStore` — Multi-container shared persistent backend for distributed production job runs.
+- **Provider-Agnostic Model Interface (`Embedder` & `Extractor`)**:
+  - Local model execution via `FastEmbed` and `Ollama`.
+  - Production-ready OpenAI-compatible endpoints (`base_url`, `model`, `api_key`) routing through team proxies or custom deployments.
+- **Strict Tenant & Scope Isolation**:
+  - Fully parameterized SQL and vector filter queries.
+  - Scope (`user` vs `global`) is caller-controlled to prevent untrusted prompt injection.
+- **Memory as Evidence**:
+  - Returns structured `MemoryRecord` instances containing similarity, decay factor, source ID, timestamp, and composite score.
+  - System context interceptor treats retrieved memories as contextual hints rather than database ground truth.
+- **Lean Dependency Core**:
+  - Minimal 5-package core (`fastapi`, `uvicorn`, `pydantic`, `numpy`, `requests`).
+  - Modular optional extras (`[local]`, `[openai]`, `[mariadb]`).
 
 ---
 
 ## Installation
 
-Install the package directly from source:
-
+### Core Installation (Lean)
 ```bash
-pip install .
+pip install agentic_memory
+```
+
+### Local Dev Installation (LanceDB + FastEmbed + Ollama)
+```bash
+pip install "agentic_memory[local]"
+```
+
+### Production Installation (OpenAI-compatible Proxy + MariaDB)
+```bash
+pip install "agentic_memory[openai,mariadb]"
 ```
 
 ---
 
-## Getting Started
+## Quickstart
 
-### 1. Launch the API Service
-Run the FastAPI memory engine server to handle ingestion and retrieval:
+### 1. Direct Python API Usage
+
+```python
+import asyncio
+from agentic_memory import create_engine, Scope
+
+async def main():
+    # Initialize engine with configured defaults
+    engine = create_engine()
+
+    # Ingest facts
+    user_id = "user_9012"
+    await engine.process_paragraph_async(
+        text="User is a Senior Systems Engineer based in Zurich working on Kubernetes.",
+        user_id=user_id,
+        scope=Scope.USER
+    )
+
+    # Retrieve decay-ranked evidence records
+    memories = engine.retrieve_memories(
+        query="What is my location and engineering focus?",
+        user_id=user_id,
+        top_k=3
+    )
+
+    for m in memories:
+        print(f"Fact: {m.text} | Score: {m.score:.2f} | Source: {m.source} | Age: {m.age_days:.1f}d")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+---
+
+### 2. Launch FastAPI Server
+
+Start the REST API server:
 
 ```bash
 python -m uvicorn agentic_memory.main_api:app --host 0.0.0.0 --port 8000
 ```
 
-### 2. Auto-Hydrate Conversations (Prompt Injection)
-Use the `MemoryInterceptor` to automatically retrieve relevant context and inject it into the LLM system prompt:
+#### API Endpoints:
+
+- `POST /ingest`: Ingests free text asynchronously.
+  ```json
+  {
+    "user_id": "user_123",
+    "text": "User loves playing acoustic guitar.",
+    "scope": "user"
+  }
+  ```
+- `POST /retrieve`: Retrieves decay-ranked evidence records.
+  ```json
+  {
+    "user_id": "user_123",
+    "query": "What instruments do I play?",
+    "top_k": 3,
+    "half_life_days": 30.0,
+    "scope": "user"
+  }
+  ```
+  **Response**:
+  ```json
+  {
+    "user_id": "user_123",
+    "query": "What instruments do I play?",
+    "memories": [
+      {
+        "text": "user plays acoustic guitar",
+        "score": 0.8912,
+        "similarity": 0.8912,
+        "decay_factor": 1.0,
+        "source": "mem_1741829102",
+        "timestamp": 1741829102.12,
+        "scope": "user",
+        "age_days": 0.0
+      }
+    ]
+  }
+  ```
+
+---
+
+### 3. Prompt Interceptor
+
+Automatically inject context hints into chat payloads:
 
 ```python
 from agentic_memory import MemoryInterceptor
 
-# Initialize the interceptor
 interceptor = MemoryInterceptor(memory_api_base="http://localhost:8000")
 
-# Input messages from user session
-input_messages = [
-    {"role": "user", "content": "What is my location and focus area?"}
+messages = [
+    {"role": "user", "content": "Suggest a weekend itinerary for me."}
 ]
 
-# Hydrate system prompt with relevant user memories
-hydrated_messages = interceptor.inject_context(input_messages, user_id="user_4920")
-
-# Send hydrated_messages directly to your LLM API
+hydrated_messages = interceptor.inject_context(messages, user_id="user_123")
 ```
 
 ---
 
-## Custom Tool Integration (LangChain Example)
+## Configuration Reference
 
-Expose memory save and retrieve functions to your agent as LangChain tools:
+Configure using environment variables prefixed with `MEMORY_`:
 
-```python
-from langchain_ollama import ChatOllama
-from langchain_core.tools import tool
-from agentic_memory import MemoryEngine
-
-# Define the tools
-@tool
-def save_user_memory(user_id: str, text: str) -> str:
-    """Saves a new fact about the user."""
-    # (Send requests.post to http://localhost:8000/ingest)
-    ...
-
-@tool
-def retrieve_user_memory(user_id: str, query: str) -> str:
-    """Retrieves relevant facts about the user."""
-    # (Send requests.post to http://localhost:8000/retrieve)
-    ...
-
-llm = ChatOllama(model="qwen2.5:14b-instruct")
-tools = [save_user_memory, retrieve_user_memory]
-llm_with_tools = llm.bind_tools(tools)
-```
-
----
-
-## Configuration
-
-You can customize the memory parameters using the following environment variables:
-
-| Variable | Default | Description |
+| Environment Variable | Default | Description |
 | :--- | :--- | :--- |
-| `MEMORY_DB_PATH` | `memory.db` | Path to SQLite database |
-| `LANCEDB_PATH` | `./lancedb_data` | Directory containing LanceDB indexes |
-| `OLLAMA_MODEL` | `qwen2.5:14b-instruct` | LLM model name used for fact extraction |
-
----
-
-## Performance Benchmarks
-
-Tested locally using `qwen2.5:14b-instruct` on Ollama:
-
-*   **Ingestion Latency**: **~1.43 ms** (queued asynchronously)
-*   **Retrieval Latency**: **~13.47 ms** ( LanceDB semantic search + decay ranking)
-*   **Storage Footprint**: SQLite DB: ~20 KB, LanceDB Vector Index: ~441 KB (with 53 active rows)
+| `MEMORY_STORAGE_BACKEND` | `sqlite` | Persistence engine (`sqlite`, `mariadb`) |
+| `MEMORY_DB_PATH` | `memory.db` | Path to local SQLite metadata database |
+| `LANCEDB_PATH` | `./lancedb_data` | Directory containing LanceDB vector tables |
+| `MEMORY_MARIADB_URL` | `None` | MariaDB connection string for shared storage |
+| `MEMORY_EMBEDDER_PROVIDER` | `fastembed` | Embedding provider (`fastembed`, `openai`) |
+| `MEMORY_EMBEDDER_MODEL` | `BAAI/bge-small-en-v1.5` | Embedding model identifier |
+| `MEMORY_EMBEDDER_BASE_URL` | `http://localhost:11434/v1` | Base URL for OpenAI-compatible embedding proxy |
+| `MEMORY_EXTRACTOR_PROVIDER` | `ollama` | Fact extraction provider (`ollama`, `openai`) |
+| `MEMORY_EXTRACTOR_MODEL` | `qwen2.5:14b-instruct` | LLM model identifier for extraction |
+| `MEMORY_EXTRACTOR_BASE_URL` | `http://localhost:11434/v1` | Base URL for OpenAI-compatible extraction proxy |
+| `MEMORY_DEFAULT_HALF_LIFE_DAYS`| `30.0` | Half-life in days for exponential time-decay ranking |
