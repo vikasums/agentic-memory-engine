@@ -276,10 +276,10 @@ class SQLiteLanceDBStore:
                 safe_old_id = old_id.replace("'", "''")
                 self.table.update(where=f"id = '{safe_old_id}'", values={"is_active": False})
 
-                # Create new memory with resolved value
+                # Create new memory with resolved value (natural_key is PRIMARY KEY, use INSERT OR REPLACE)
                 new_memory_id = f"mem_{time.time_ns()}"
                 self.conn.execute("""
-                    INSERT INTO memory_keys
+                    INSERT OR REPLACE INTO memory_keys
                     (natural_key, memory_id, user_id, subject, predicate, object_value, scope, is_active, updated_at, expires_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NULL)
                 """, (natural_key, new_memory_id, user_id, subject, predicate, new_value, scope, time.time()))
