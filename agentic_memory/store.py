@@ -262,19 +262,30 @@ class SQLiteLanceDBStore:
         with self._lock:
             cursor = self.conn.cursor()
             cursor.execute("""
-                SELECT memory_id FROM memory_keys
+                SELECT memory_id, subject, predicate, user_id, scope FROM memory_keys
                 WHERE natural_key = ? AND is_active = 1
             """, (natural_key,))
             existing = cursor.fetchone()
             if existing:
-                old_id = existing[0]
+                old_id, subject, predicate, user_id, scope = existing
+                # Deactivate old memory
                 self.conn.execute(
                     "UPDATE memory_keys SET is_active = 0 WHERE natural_key = ?",
                     (natural_key,)
                 )
                 safe_old_id = old_id.replace("'", "''")
                 self.table.update(where=f"id = '{safe_old_id}'", values={"is_active": False})
-            return f"Resolved: '{old_value}' → '{new_value}'"
+
+                # Create new memory with resolved value
+                new_memory_id = f"mem_{time.time_ns()}"
+                self.conn.execute("""
+                    INSERT INTO memory_keys
+                    (natural_key, memory_id, user_id, subject, predicate, object_value, scope, is_active, updated_at, expires_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NULL)
+                """, (natural_key, new_memory_id, user_id, subject, predicate, new_value, scope, time.time()))
+
+                return f"Resolved: '{old_value}' → '{new_value}' (new memory: {new_memory_id})"
+            return f"No active memory found for {natural_key}"
 
     def get_footprint(self) -> Dict[str, Any]:
         with self._lock:

@@ -119,7 +119,7 @@ class MemoryCLI:
         """Set expiry for a fact (example utility)."""
         self.init_engine()
         try:
-            from .models import FactRecord
+            from .models import FactRecord, Scope
             expires_at = (datetime.now() + timedelta(days=expires_in_days)).timestamp()
             fact = FactRecord(
                 subject=subject,
@@ -127,7 +127,9 @@ class MemoryCLI:
                 object_value="",
                 expires_at=expires_at
             )
+            mem_id = self.engine.store.upsert_fact(fact, user_id=user_id, scope=Scope.USER)
             print(f"✓ Set expiry for '{subject} {predicate}' to {expires_in_days} days from now")
+            print(f"  Memory ID: {mem_id}")
         except Exception as e:
             print(f"✗ Error: {e}", file=sys.stderr)
             sys.exit(1)

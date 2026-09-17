@@ -154,8 +154,8 @@ class MemoryEngine:
         from .models import StoreFilter
         filter_params = StoreFilter(user_id=user_id, is_active=True, include_global=True)
 
-        # Query for recent activity (last N days)
-        all_memories = self.store.search_vectors([0.0] * self.embedder.dimension, filter_params, limit=1000)
+        # Query for recent activity (last N days) - fetch all available memories
+        all_memories = self.store.search_vectors([0.0] * self.embedder.dimension, filter_params, limit=10000)
 
         stable_facts = []
         recent_activity = []
