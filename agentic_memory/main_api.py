@@ -38,6 +38,10 @@ class RetrieveRequest(BaseModel):
     half_life_days: float = 30.0
     scope: Scope = Scope.USER
 
+class ProfileRequest(BaseModel):
+    user_id: str
+    recent_days: int = 7
+
 @app.post("/ingest", status_code=202)
 async def ingest(payload: IngestRequest, bg_tasks: BackgroundTasks):
     if not engine:
@@ -74,6 +78,18 @@ async def retrieve(payload: RetrieveRequest):
         "query": payload.query,
         "memories": formatted_memories
     }
+
+@app.post("/profile")
+async def profile(payload: ProfileRequest):
+    if not engine:
+        raise HTTPException(500, "Engine uninitialized")
+    # Try cached profile first
+    cached = engine.get_user_profile(payload.user_id)
+    if cached:
+        return cached
+    # Generate new profile
+    profile_data = engine.generate_user_profile(payload.user_id, payload.recent_days)
+    return profile_data
 
 @app.get("/metrics")
 async def metrics():

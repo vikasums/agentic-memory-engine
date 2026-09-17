@@ -14,6 +14,7 @@ class FactRecord:
     object_value: str
     confidence: float = 1.0
     scope: Scope = Scope.USER
+    expires_at: Optional[float] = None
 
 @dataclass(frozen=True, slots=True)
 class MemoryRecord:
@@ -45,3 +46,12 @@ class ScoredMemory:
     is_active: bool
     timestamp: float
     distance: float = 0.0
+
+@dataclass(frozen=True, slots=True)
+class UserProfile:
+    """Pre-computed user profile with stable facts and recent activity."""
+    user_id: str
+    stable_facts: List[str]
+    recent_activity: List[str]
+    profile_timestamp: float
+    ttl_seconds: float = 3600.0

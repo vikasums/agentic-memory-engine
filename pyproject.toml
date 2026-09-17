@@ -41,6 +41,9 @@ dev = [
     "httpx>=0.24.0"
 ]
 
+[project.scripts]
+agentic-memory = "agentic_memory.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["agentic_memory*"]

@@ -145,6 +145,44 @@ class MemoryEngine:
         records.sort(key=lambda r: r.score, reverse=True)
         return records[:top_k]
 
+    def generate_user_profile(self, user_id: str, recent_days: int = 7) -> dict:
+        """Generates user profile: stable facts + recent activity."""
+        now = time.time()
+        recent_cutoff = now - (recent_days * 86400)
+
+        # Get all active facts for user
+        from .models import StoreFilter
+        filter_params = StoreFilter(user_id=user_id, is_active=True, include_global=True)
+
+        # Query for recent activity (last N days)
+        all_memories = self.store.search_vectors([0.0] * self.embedder.dimension, filter_params, limit=1000)
+
+        stable_facts = []
+        recent_activity = []
+
+        for mem in all_memories:
+            if mem.timestamp >= recent_cutoff:
+                recent_activity.append(mem.text)
+            else:
+                stable_facts.append(mem.text)
+
+        # Cache profile for fast retrieval (~50ms)
+        if hasattr(self.store, "cache_user_profile"):
+            self.store.cache_user_profile(user_id, stable_facts, recent_activity)
+
+        return {
+            "user_id": user_id,
+            "stable_facts": stable_facts,
+            "recent_activity": recent_activity,
+            "profile_timestamp": now
+        }
+
+    def get_user_profile(self, user_id: str) -> Optional[dict]:
+        """Retrieves cached user profile if available."""
+        if hasattr(self.store, "get_cached_profile"):
+            return self.store.get_cached_profile(user_id)
+        return None
+
     def get_storage_footprint(self) -> dict:
         """Returns storage metrics and row counts from underlying store."""
         return self.store.get_footprint()
