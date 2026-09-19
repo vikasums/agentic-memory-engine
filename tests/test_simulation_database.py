@@ -33,6 +33,9 @@ EXPECTED_RUN_COLUMNS = {
     "user_count",
     "scenario_count",
     "status",
+    # Spec § 7.1 lists `notes` among the fields every run is tagged with; the
+    # § 3.5 DDL omits it. Added in Task 3 — see task-3-report.md.
+    "notes",
 }
 
 

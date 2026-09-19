@@ -142,6 +142,10 @@ class RunMetadata:
     user_count: int = 0
     scenario_count: int = 0
     status: str = RunStatus.IN_PROGRESS.value
+    #: Free-text run label, e.g. "Progressive validation" (spec § 7.1). The
+    #: § 3.5 DDL omits it; the column was added in Task 3 so the dataclass and
+    #: the table stay one-to-one.
+    notes: Optional[str] = None
 
 
 @dataclass

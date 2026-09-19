@@ -11,6 +11,7 @@ from .database import (
     DEFAULT_AUDIT_DB_PATH,
     connect,
     init_audit_db,
+    migrate_audit_db,
     table_exists,
 )
 from .models import (
@@ -27,7 +28,12 @@ from .models import (
     ScenarioFact,
     ValidationResult,
 )
-from .audit_logger import AuditLogger
+from .audit_logger import (
+    VALID_EVENT_TYPES,
+    VALID_RUN_STATUSES,
+    VALID_SOURCES,
+    AuditLogger,
+)
 from .engine_client import EngineClient
 from .monitoring_service import MonitoringService
 from .scenario_generator import (
@@ -50,6 +56,7 @@ __all__ = [
     "DEFAULT_AUDIT_DB_PATH",
     "connect",
     "init_audit_db",
+    "migrate_audit_db",
     "table_exists",
     "AuditEvent",
     "AuditEventType",
@@ -64,6 +71,9 @@ __all__ = [
     "ScenarioFact",
     "ValidationResult",
     "AuditLogger",
+    "VALID_EVENT_TYPES",
+    "VALID_RUN_STATUSES",
+    "VALID_SOURCES",
     "EngineClient",
     "MonitoringService",
     "ScenarioGenerator",
