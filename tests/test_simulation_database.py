@@ -113,7 +113,7 @@ def test_init_creates_parent_directory(tmp_path):
 
 
 def test_skeletons_raise_not_implemented():
-    with pytest.raises(NotImplementedError):
-        simulation.ScenarioGenerator().generate(60.0)
+    # ScenarioGenerator.generate() is implemented as of Task 2 — see
+    # tests/test_scenario_generator.py.
     with pytest.raises(NotImplementedError):
         simulation.MonitoringService(run_number=1).get_metrics()

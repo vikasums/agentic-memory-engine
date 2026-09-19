@@ -30,7 +30,17 @@ from .models import (
 from .audit_logger import AuditLogger
 from .engine_client import EngineClient
 from .monitoring_service import MonitoringService
-from .scenario_generator import ScenarioGenerator
+from .scenario_generator import (
+    CATEGORY_COUNTS,
+    DEFAULT_MAX_DURATION_SECONDS,
+    DEFAULT_USER_IDS,
+    EXPECTED_OUTCOME_VOCABULARY,
+    MIN_SCENARIO_COUNT,
+    ScenarioGenerator,
+    fact_to_dict,
+    scenario_to_dict,
+    scenarios_to_json,
+)
 from .simulation_runner import RUN_DURATIONS_SECONDS, SimulationRunner
 from .validator_service import ValidatorService
 
@@ -57,6 +67,14 @@ __all__ = [
     "EngineClient",
     "MonitoringService",
     "ScenarioGenerator",
+    "CATEGORY_COUNTS",
+    "DEFAULT_MAX_DURATION_SECONDS",
+    "DEFAULT_USER_IDS",
+    "EXPECTED_OUTCOME_VOCABULARY",
+    "MIN_SCENARIO_COUNT",
+    "fact_to_dict",
+    "scenario_to_dict",
+    "scenarios_to_json",
     "SimulationRunner",
     "RUN_DURATIONS_SECONDS",
     "ValidatorService",
