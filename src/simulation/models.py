@@ -263,3 +263,101 @@ class ValidationResult:
     outcome: str
     passed: bool
     details: Dict[str, Any] = field(default_factory=dict)
+
+
+class ErrorClass(str, Enum):
+    """How the SimulationRunner classified a failed engine call (spec § 3.2).
+
+    The runner never retries and never aborts a run on one of these: it records
+    the classification and plays the next event.
+    """
+
+    #: HTTP 4xx — the request itself is wrong; replaying it will fail again.
+    PERMANENT = "permanent"
+    #: HTTP 5xx — the engine is unhealthy; a later call may still succeed.
+    TEMPORARY = "temporary"
+    #: No response inside the client timeout.
+    TIMEOUT = "timeout"
+    #: Connection/transport failure or an unparseable response body.
+    TRANSPORT = "transport"
+    #: Anything the runner did not expect, kept so a run can never crash.
+    UNEXPECTED = "unexpected"
+
+
+@dataclass
+class RunError:
+    """One failed event during playback (spec § 3.2 resilience).
+
+    ``error`` holds the originating exception — an
+    :class:`~simulation.engine_client.EngineClientError` for every
+    classification but :attr:`ErrorClass.UNEXPECTED`. It is typed as
+    ``Exception`` here so :mod:`simulation.models` stays free of an import
+    cycle with :mod:`simulation.engine_client`.
+    """
+
+    timestamp: float
+    scenario_id: str
+    fact_index: int
+    user_id: str
+    classification: str
+    message: str
+    endpoint: Optional[str] = None
+    status_code: Optional[int] = None
+    error: Optional[Exception] = None
+
+
+@dataclass
+class RunResult:
+    """Report for one simulation run (spec § 3.2 step 4).
+
+    ``facts_count`` counts the events the runner actually played — ingests plus
+    profile reads — which is ``events_played``; ``events_skipped`` counts facts
+    scheduled past the end of the run.
+    """
+
+    run_number: int
+    duration_seconds: float
+    scenarios_count: int
+    facts_count: int = 0
+    errors: List[RunError] = field(default_factory=list)
+    status: str = RunStatus.IN_PROGRESS.value
+
+    # -- timing / progress -------------------------------------------------
+    start_time: float = 0.0
+    end_time: Optional[float] = None
+    elapsed_seconds: float = 0.0
+    events_total: int = 0
+    events_played: int = 0
+    events_skipped: int = 0
+
+    # -- playback breakdown ------------------------------------------------
+    user_count: int = 0
+    ingested_count: int = 0
+    profile_read_count: int = 0
+    contradiction_count: int = 0
+    #: ``{scenario_id: [engine fact_id, ...]}`` in playback order.
+    fact_ids: Dict[str, List[str]] = field(default_factory=dict)
+    #: One record per ``profile_read`` fact: expected vs observed cache status.
+    cache_checks: List[Dict[str, Any]] = field(default_factory=list)
+
+    # -- post-run ----------------------------------------------------------
+    metrics: Dict[str, Any] = field(default_factory=dict)
+    validation_results: List[ValidationResult] = field(default_factory=list)
+    #: Profile cache TTL the engine needs for the run's cache expectations to
+    #: hold (spec § 5.1 C / ``cache_002``); ``None`` when the default suffices.
+    profile_cache_ttl_seconds: Optional[float] = None
+    notes: List[str] = field(default_factory=list)
+
+    @property
+    def engine_errors(self) -> List[Exception]:
+        """The underlying exceptions behind :attr:`errors`, in order."""
+        return [item.error for item in self.errors if item.error is not None]
+
+    @property
+    def error_count(self) -> int:
+        return len(self.errors)
+
+    @property
+    def succeeded(self) -> bool:
+        """True when the run completed and every played event succeeded."""
+        return self.status == RunStatus.COMPLETED.value and not self.errors

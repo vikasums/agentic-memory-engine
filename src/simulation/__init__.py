@@ -18,6 +18,7 @@ from .models import (
     AuditEvent,
     AuditEventType,
     AuditSource,
+    ErrorClass,
     FactType,
     IngestionResult,
     MonitoringEvent,
@@ -25,7 +26,9 @@ from .models import (
     ProfileResult,
     RetrievalResult,
     RetrievedFact,
+    RunError,
     RunMetadata,
+    RunResult,
     RunStatus,
     Scenario,
     ScenarioCategory,
@@ -60,7 +63,13 @@ from .scenario_generator import (
     scenario_to_dict,
     scenarios_to_json,
 )
-from .simulation_runner import RUN_DURATIONS_SECONDS, SimulationRunner
+from .simulation_runner import (
+    REQUIRED_CACHE_TTL_KEY,
+    RUN_DURATIONS_SECONDS,
+    SimulationRunner,
+    build_event_queue,
+    classify_engine_error,
+)
 from .validator_service import ValidatorService
 
 __version__ = "0.1.0"
@@ -74,6 +83,7 @@ __all__ = [
     "AuditEvent",
     "AuditEventType",
     "AuditSource",
+    "ErrorClass",
     "FactType",
     "IngestionResult",
     "MonitoringEvent",
@@ -81,7 +91,9 @@ __all__ = [
     "ProfileResult",
     "RetrievalResult",
     "RetrievedFact",
+    "RunError",
     "RunMetadata",
+    "RunResult",
     "RunStatus",
     "Scenario",
     "ScenarioCategory",
@@ -111,6 +123,9 @@ __all__ = [
     "scenarios_to_json",
     "SimulationRunner",
     "RUN_DURATIONS_SECONDS",
+    "REQUIRED_CACHE_TTL_KEY",
+    "build_event_queue",
+    "classify_engine_error",
     "ValidatorService",
     "__version__",
 ]

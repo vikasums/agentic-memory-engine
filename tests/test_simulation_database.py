@@ -116,7 +116,9 @@ def test_init_creates_parent_directory(tmp_path):
 
 
 def test_skeletons_raise_not_implemented():
-    # ScenarioGenerator.generate() is implemented as of Task 2 — see
-    # tests/test_scenario_generator.py.
+    # Implemented since this test was written: ScenarioGenerator.generate()
+    # (Task 2), AuditLogger (Task 3), EngineClient (Task 4),
+    # MonitoringService.get_metrics() (Task 5) and SimulationRunner.run()
+    # (Task 6). ValidatorService is the last skeleton — it lands in Task 7.
     with pytest.raises(NotImplementedError):
-        simulation.MonitoringService(run_number=1).get_metrics()
+        simulation.ValidatorService().validate_via_db("fact_1", "user_1")
