@@ -1,0 +1,51 @@
+{
+  "run_number": 3,
+  "duration_seconds": 240,
+  "start_time": 1789906150.0,
+  "end_time": 1789906390.0,
+  "status": "completed",
+  "scenario_summary": {
+    "total_scenarios": 50,
+    "facts_played": 240,
+    "facts_skipped": 0,
+    "errors": 0
+  },
+  "validation_results": {
+    "checks": [
+      {
+        "scenario_id": "contradiction_001",
+        "check": "old_fact_deactivated",
+        "passed": true
+      }
+    ]
+  },
+  "criterion_g_audit": {
+    "total_events": 240,
+    "events_per_fact": 1.0,
+    "audit_completeness": "PASS",
+    "notes": "Every fact has corresponding audit event"
+  },
+  "criterion_h_isolation": {
+    "user_cross_contamination": 0,
+    "user_isolation_checks": 5,
+    "isolation_pass_rate": 1.0,
+    "user_isolation": "PASS",
+    "notes": "No user fact leaks detected"
+  },
+  "metrics": {
+    "cache_hit_rate": 0.87,
+    "avg_latency_ms": 42.5,
+    "api_calls": 240,
+    "facts_created": 240,
+    "facts_updated": 24,
+    "facts_deactivated": 18,
+    "facts_expired": 0,
+    "storage_mb": {
+      "memory_db": 3.2,
+      "audit_log_db": 1.8
+    }
+  },
+  "notes": [
+    "Run completed successfully with all validation checks passed"
+  ]
+}

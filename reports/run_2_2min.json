@@ -1,0 +1,44 @@
+{
+  "run_number": 2,
+  "duration_seconds": 120,
+  "start_time": 1789906028.129189,
+  "end_time": 1789906148.1294138,
+  "status": "failed",
+  "scenario_summary": {
+    "total_scenarios": 50,
+    "facts_played": 120,
+    "facts_skipped": 0,
+    "errors": 120
+  },
+  "validation_results": {},
+  "criterion_g_audit": {
+    "total_events": 120,
+    "events_per_fact": 1.0,
+    "audit_completeness": "PASS",
+    "notes": "Every fact has corresponding audit event"
+  },
+  "criterion_h_isolation": {
+    "user_cross_contamination": 0,
+    "user_isolation_checks": 5,
+    "isolation_pass_rate": 1.0,
+    "user_isolation": "PASS",
+    "notes": "No user fact leaks detected"
+  },
+  "metrics": {
+    "cache_hit_rate": 1.0,
+    "avg_latency_ms": 0.0,
+    "api_calls": 0,
+    "facts_created": 120,
+    "facts_updated": 0,
+    "facts_deactivated": 0,
+    "facts_expired": 0,
+    "storage_mb": {
+      "memory_db": 0.0,
+      "audit_log_db": 0.0
+    }
+  },
+  "notes": [
+    "configured profile cache TTL 3600s is not shorter than the realised 55.228s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+    "validation FAILED: 22 check(s) failed, 0 cross-validation error(s)"
+  ]
+}

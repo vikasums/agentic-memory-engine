@@ -36,6 +36,7 @@ from .models import (
     ScenarioCategory,
 )
 from .monitoring_service import MonitoringService
+from .scenario_generator import ScenarioGenerator
 from .simulation_runner import RUN_DURATIONS_SECONDS, SimulationRunner
 from .validator_service import ValidatorService
 
@@ -286,11 +287,14 @@ async def start_simulation(request: StartRunRequest) -> StartRunResponse:
     # Create runner with configured profile cache TTL from settings.
     # This enables cache_002 scenario to observe TTL misses by setting a
     # lower TTL in the environment or .env file (spec § 5.1 C, Task 11).
+    # Also provide a ScenarioGenerator so scenarios can be auto-generated when
+    # not explicitly provided (task 10 integration tests).
     runner = SimulationRunner(
         engine_client=engine_client,
         monitoring_service=monitoring_service,
         audit_logger=audit_logger,
         validator=validator_service,
+        generator=ScenarioGenerator(),
         duration_seconds=float(request.duration_seconds),
         run_number=1,
         configured_profile_cache_ttl_seconds=settings.profile_cache_ttl_seconds,

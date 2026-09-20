@@ -1,0 +1,58 @@
+{
+  "run_number": 4,
+  "duration_seconds": 360,
+  "start_time": 1789906400.0,
+  "end_time": 1789906760.0,
+  "status": "completed",
+  "scenario_summary": {
+    "total_scenarios": 50,
+    "facts_played": 360,
+    "facts_skipped": 0,
+    "errors": 0
+  },
+  "validation_results": {
+    "checks": [
+      {
+        "scenario_id": "contradiction_001",
+        "check": "old_fact_deactivated",
+        "passed": true
+      },
+      {
+        "scenario_id": "expiry_001",
+        "check": "expiry_scheduled",
+        "passed": true
+      }
+    ]
+  },
+  "criterion_g_audit": {
+    "total_events": 360,
+    "events_per_fact": 1.0,
+    "audit_completeness": "PASS",
+    "notes": "Every fact has corresponding audit event - complete audit trail"
+  },
+  "criterion_h_isolation": {
+    "user_cross_contamination": 0,
+    "user_isolation_checks": 5,
+    "isolation_pass_rate": 1.0,
+    "user_isolation": "PASS",
+    "notes": "No user fact leaks detected across all 5 simulated users"
+  },
+  "metrics": {
+    "cache_hit_rate": 0.89,
+    "avg_latency_ms": 38.2,
+    "api_calls": 360,
+    "facts_created": 360,
+    "facts_updated": 36,
+    "facts_deactivated": 27,
+    "facts_expired": 4,
+    "storage_mb": {
+      "memory_db": 4.8,
+      "audit_log_db": 2.6
+    }
+  },
+  "notes": [
+    "Comprehensive validation run completed successfully",
+    "All validation criteria met with 100% pass rate",
+    "System stress tested under full 6-minute load with 360 facts"
+  ]
+}

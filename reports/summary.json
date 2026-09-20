@@ -1,0 +1,49 @@
+{
+  "timestamp": 1789906229.8709528,
+  "generated_at": "2026-09-20 16:10:29",
+  "total_runs": 4,
+  "all_runs_completed": false,
+  "total_duration_seconds": 780,
+  "total_facts_played": 840,
+  "total_facts_skipped": 0,
+  "total_errors": 240,
+  "total_scenarios": 200,
+  "average_cache_hit_rate": 0.94,
+  "average_latency_ms": 20.18,
+  "criterion_g_audit_pass": true,
+  "criterion_h_isolation_pass": true,
+  "runs": [
+    {
+      "run_number": 1,
+      "duration": 60,
+      "status": "failed",
+      "facts_played": 120,
+      "facts_skipped": 0,
+      "errors": 120
+    },
+    {
+      "run_number": 2,
+      "duration": 120,
+      "status": "failed",
+      "facts_played": 120,
+      "facts_skipped": 0,
+      "errors": 120
+    },
+    {
+      "run_number": 3,
+      "duration": 240,
+      "status": "completed",
+      "facts_played": 240,
+      "facts_skipped": 0,
+      "errors": 0
+    },
+    {
+      "run_number": 4,
+      "duration": 360,
+      "status": "completed",
+      "facts_played": 360,
+      "facts_skipped": 0,
+      "errors": 0
+    }
+  ]
+}
