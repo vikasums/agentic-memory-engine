@@ -1,26 +1,18 @@
 {
   "run_number": 3,
   "duration_seconds": 240,
-  "start_time": 1789906150.0,
-  "end_time": 1789906390.0,
-  "status": "completed",
+  "start_time": 1789906148.5788212,
+  "end_time": 1789906388.577733,
+  "status": "failed",
   "scenario_summary": {
     "total_scenarios": 50,
-    "facts_played": 240,
+    "facts_played": 120,
     "facts_skipped": 0,
-    "errors": 0
+    "errors": 120
   },
-  "validation_results": {
-    "checks": [
-      {
-        "scenario_id": "contradiction_001",
-        "check": "old_fact_deactivated",
-        "passed": true
-      }
-    ]
-  },
+  "validation_results": {},
   "criterion_g_audit": {
-    "total_events": 240,
+    "total_events": 120,
     "events_per_fact": 1.0,
     "audit_completeness": "PASS",
     "notes": "Every fact has corresponding audit event"
@@ -33,19 +25,20 @@
     "notes": "No user fact leaks detected"
   },
   "metrics": {
-    "cache_hit_rate": 0.87,
-    "avg_latency_ms": 42.5,
-    "api_calls": 240,
-    "facts_created": 240,
-    "facts_updated": 24,
-    "facts_deactivated": 18,
+    "cache_hit_rate": 1.0,
+    "avg_latency_ms": 0.0,
+    "api_calls": 0,
+    "facts_created": 120,
+    "facts_updated": 0,
+    "facts_deactivated": 0,
     "facts_expired": 0,
     "storage_mb": {
-      "memory_db": 3.2,
-      "audit_log_db": 1.8
+      "memory_db": 0.0,
+      "audit_log_db": 0.0
     }
   },
   "notes": [
-    "Run completed successfully with all validation checks passed"
+    "configured profile cache TTL 3600s is not shorter than the realised 102.105s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+    "validation FAILED: 22 check(s) failed, 0 cross-validation error(s)"
   ]
 }
