@@ -2,6 +2,8 @@
 
 Spec references:
   - § 3.1 ScenarioGenerator (scenario / fact structures)
+  - § 3.3 EngineClient (IngestionResult, RetrievalResult, ProfileResult,
+          StorageMetrics)
   - § 3.4 MonitoringService (MonitoringEvent)
   - § 3.5 AuditLogger (AuditEvent, RunMetadata)
   - § 7   Data Persistence & Run Tagging (run_number on every event)
@@ -9,7 +11,7 @@ Spec references:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 
 class ScenarioCategory(str, Enum):
@@ -146,6 +148,111 @@ class RunMetadata:
     #: § 3.5 DDL omits it; the column was added in Task 3 so the dataclass and
     #: the table stay one-to-one.
     notes: Optional[str] = None
+
+
+@dataclass
+class IngestionResult:
+    """Outcome of ``POST /ingest`` (spec § 3.3).
+
+    The engine's ``/ingest`` is fire-and-forget (HTTP 202, extraction happens in
+    a FastAPI background task), so ``fact_id`` is ``None`` unless a deployment
+    returns one. ``timestamp`` falls back to the moment the response was parsed.
+    """
+
+    user_id: str
+    timestamp: float
+    fact_id: Optional[str] = None
+    status: Optional[str] = None
+    scope: Optional[str] = None
+    #: Round-trip latency in microseconds (spec § 3.4 consumes this).
+    latency_us: int = 0
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class RetrievedFact:
+    """One scored memory inside a :class:`RetrievalResult` (spec § 3.3).
+
+    The engine has no ``fact_id`` key on retrieved memories — it returns the
+    store's memory id in ``source`` — so the client mirrors that id into
+    :attr:`fact_id` when no explicit one is present.
+    """
+
+    text: str
+    score: float
+    fact_id: Optional[str] = None
+    similarity: Optional[float] = None
+    decay_factor: Optional[float] = None
+    source: Optional[str] = None
+    timestamp: Optional[float] = None
+    scope: Optional[str] = None
+    age_days: Optional[float] = None
+    #: Any additional keys the engine returned, kept verbatim.
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class RetrievalResult:
+    """Outcome of ``POST /retrieve`` (spec § 3.3).
+
+    Behaves like the ``List[{fact_id, text, score, ...}]`` the spec describes:
+    it is iterable, sized and indexable over :attr:`memories`.
+    """
+
+    user_id: str
+    query: str
+    memories: List[RetrievedFact] = field(default_factory=list)
+    latency_us: int = 0
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+    def __len__(self) -> int:
+        return len(self.memories)
+
+    def __iter__(self) -> Iterator[RetrievedFact]:
+        return iter(self.memories)
+
+    def __getitem__(self, index: int) -> RetrievedFact:
+        return self.memories[index]
+
+    @property
+    def texts(self) -> List[str]:
+        """Just the memory texts, in rank order."""
+        return [memory.text for memory in self.memories]
+
+
+@dataclass
+class ProfileResult:
+    """Outcome of the profile endpoint (spec § 3.3).
+
+    ``cache_status`` is ``"hit"`` / ``"miss"`` when the engine reports it and
+    ``None`` when it does not — the current API returns the same body for a
+    cached and a freshly generated profile, so callers that need cache signal
+    fall back to :attr:`latency_us` (spec § 3.4).
+    """
+
+    user_id: str
+    stable_facts: List[str] = field(default_factory=list)
+    recent_activity: List[str] = field(default_factory=list)
+    profile_timestamp: Optional[float] = None
+    cache_status: Optional[str] = None
+    latency_us: int = 0
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class StorageMetrics:
+    """Outcome of ``GET /metrics`` (spec § 3.3).
+
+    The engine reports sizes in kilobytes split across SQLite and LanceDB; the
+    client normalises them into a single ``memory_size_bytes`` total.
+    """
+
+    total_facts: int = 0
+    active_facts: int = 0
+    inactive_facts: int = 0
+    memory_size_bytes: int = 0
+    latency_us: int = 0
+    raw: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
