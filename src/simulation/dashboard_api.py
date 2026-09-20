@@ -25,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from config import settings
 from .audit_logger import AuditLogger
 from .engine_client import EngineClient
 from .models import (
@@ -210,12 +211,23 @@ def _status_from_runner(run_state: RunState) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore
-    """Manage services during app startup and shutdown."""
+    """Manage services during app startup and shutdown.
+
+    Services are initialized with settings from config module (environment
+    variables or .env file). See Task 11: Configuration & Environment Setup.
+    """
     global engine_client, monitoring_service, audit_logger, validator_service
 
     # Startup
-    engine_client = EngineClient()
-    audit_logger = AuditLogger()
+    logger.info(
+        "Dashboard API starting with settings: "
+        f"api_url={settings.engine_api_base_url}, "
+        f"ttl={settings.profile_cache_ttl_seconds}s, "
+        f"debug={settings.debug}"
+    )
+
+    engine_client = EngineClient(base_url=settings.engine_api_base_url)
+    audit_logger = AuditLogger(db_path=settings.audit_db_path)
     monitoring_service = MonitoringService(audit_logger=audit_logger)
     validator_service = ValidatorService(
         engine_client=engine_client,
@@ -228,6 +240,8 @@ async def lifespan(app: FastAPI):  # type: ignore
 
     # Shutdown
     logger.info("Dashboard API services shutting down")
+    if audit_logger:
+        audit_logger.close()
 
 
 # =====================================================================
@@ -269,7 +283,9 @@ async def start_simulation(request: StartRunRequest) -> StartRunResponse:
     if engine_client is None:
         raise HTTPException(status_code=500, detail="EngineClient not initialized")
 
-    # Create runner
+    # Create runner with configured profile cache TTL from settings.
+    # This enables cache_002 scenario to observe TTL misses by setting a
+    # lower TTL in the environment or .env file (spec § 5.1 C, Task 11).
     runner = SimulationRunner(
         engine_client=engine_client,
         monitoring_service=monitoring_service,
@@ -277,6 +293,7 @@ async def start_simulation(request: StartRunRequest) -> StartRunResponse:
         validator=validator_service,
         duration_seconds=float(request.duration_seconds),
         run_number=1,
+        configured_profile_cache_ttl_seconds=settings.profile_cache_ttl_seconds,
         wait_out_duration=True,
     )
 

@@ -5,7 +5,12 @@ scenario playback against the memory engine API, a persistent audit trail in
 ``audit_log.db``, real-time monitoring and cross-validated verification.
 
 Phase 1 is deterministic — no LLM calls are made from this package.
+
+Configuration is centralized in config.py (project root) and loaded via
+environment variables or .env file. See Task 11: Configuration & Environment Setup.
 """
+
+from config import Settings, settings
 
 from .database import (
     DEFAULT_AUDIT_DB_PATH,
@@ -95,6 +100,8 @@ from .dashboard_api import app as dashboard_app
 __version__ = "0.1.0"
 
 __all__ = [
+    "Settings",
+    "settings",
     "DEFAULT_AUDIT_DB_PATH",
     "DEFAULT_MEMORY_DB_PATH",
     "MEMORY_KEYS_COLUMNS",

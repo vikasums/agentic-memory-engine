@@ -51,3 +51,11 @@ audit_log.db-wal
 .vscode/
 *.swp
 *.swo
+
+# Node and frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env
+frontend/*.tsbuildinfo
+frontend/*.log
