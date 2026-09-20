@@ -154,9 +154,10 @@ class RunMetadata:
 class IngestionResult:
     """Outcome of ``POST /ingest`` (spec § 3.3).
 
-    The engine's ``/ingest`` is fire-and-forget (HTTP 202, extraction happens in
-    a FastAPI background task), so ``fact_id`` is ``None`` unless a deployment
-    returns one. ``timestamp`` falls back to the moment the response was parsed.
+    One utterance can yield several facts, so ``memory_ids`` and ``fact_texts``
+    carry all of them while ``fact_id`` stays the first for single-id callers.
+    Deployments whose ``/ingest`` is fire-and-forget return none of these, and
+    ``timestamp`` then falls back to the moment the response was parsed.
     """
 
     user_id: str
@@ -166,6 +167,10 @@ class IngestionResult:
     scope: Optional[str] = None
     #: Round-trip latency in microseconds (spec § 3.4 consumes this).
     latency_us: int = 0
+    #: Every memory id the engine created for this utterance.
+    memory_ids: List[str] = field(default_factory=list)
+    #: The normalised ``subject predicate object`` text stored for each id.
+    fact_texts: List[str] = field(default_factory=list)
     raw: Dict[str, Any] = field(default_factory=dict)
 
 

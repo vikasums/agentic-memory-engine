@@ -1,7 +1,7 @@
 import time
 import math
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from .models import Scope, FactRecord, MemoryRecord, StoreFilter, ScoredMemory
 from .store import MemoryStore, SQLiteLanceDBStore
 from .providers import Embedder, Extractor, FastEmbedEmbedder, OllamaExtractor, OpenAICompatibleEmbedder, OpenAICompatibleExtractor
@@ -60,21 +60,25 @@ class MemoryEngine:
             else:
                 raise ValueError(f"Unsupported extractor provider: {self.settings.extractor_provider}")
 
-    async def process_paragraph_async(
+    async def process_paragraph_detailed(
         self,
         text: str,
         user_id: str,
         scope: Scope = Scope.USER
-    ) -> List[str]:
-        """Extracts facts from natural language text and upserts them into storage."""
+    ) -> List[Tuple[str, str]]:
+        """Extract facts and upsert them, returning ``(memory_id, stored_text)``.
+
+        The stored text is the normalised ``subject predicate object`` triple,
+        which is what retrieval ranks and returns — not the caller's prose.
+        """
         facts = await self.extractor.extract_facts(text)
-        memory_ids = []
+        extracted: List[Tuple[str, str]] = []
 
         for fact in facts:
             # Enforce scope set by caller
             fact_str = f"{fact.subject} {fact.predicate} {fact.object_value}"
             mem_id = self.store.upsert_fact(fact=fact, user_id=user_id, scope=scope)
-            
+
             # Embed fact text
             vectors = self.embedder.embed([fact_str])
             vector = vectors[0] if vectors else [0.0] * self.embedder.dimension
@@ -88,9 +92,21 @@ class MemoryEngine:
                     vector=vector,
                     timestamp=time.time()
                 )
-            memory_ids.append(mem_id)
+            extracted.append((mem_id, fact_str))
 
-        return memory_ids
+        return extracted
+
+    async def process_paragraph_async(
+        self,
+        text: str,
+        user_id: str,
+        scope: Scope = Scope.USER
+    ) -> List[str]:
+        """Extracts facts from natural language text and upserts them into storage."""
+        return [
+            mem_id
+            for mem_id, _ in await self.process_paragraph_detailed(text, user_id, scope)
+        ]
 
     @time_operation("retrieve_memories")
     def retrieve_memories(

@@ -31,12 +31,12 @@ class Settings(BaseModel):
     """
 
     # Profile cache TTL (seconds) — must match the engine's profile cache window.
-    # The engine's store.py:225 caches user profiles; cache_002 scenario requires
-    # this value to be lowered for its expected miss to be observable within a
-    # 60-360 second run. Set to ~30s for testing, 3600s for production.
+    # A 60-360 second run cannot observe a cache miss, or a profile that reflects
+    # facts ingested during the run, unless the TTL is shorter than the run. Raise
+    # it to 3600 for production, where profiles are expected to be long-lived.
     profile_cache_ttl_seconds: int = Field(
-        default_factory=lambda: int(os.getenv("PROFILE_CACHE_TTL_SECONDS", "3600")),
-        description="Profile cache TTL in seconds (default 3600, ~30 for cache_002 testing)",
+        default_factory=lambda: int(os.getenv("PROFILE_CACHE_TTL_SECONDS", "30")),
+        description="Profile cache TTL in seconds (default 30 for simulation runs; 3600 in production)",
     )
 
     # Engine API endpoint — the memory engine's FastAPI server.

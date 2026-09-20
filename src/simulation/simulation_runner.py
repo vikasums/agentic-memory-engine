@@ -625,6 +625,10 @@ class SimulationRunner:
                 "fact_id_source": id_source,
                 "user_id": user_id,
                 "text": fact.text,
+                # What the engine actually stored: normalised triples, not the
+                # utterance. Validation compares against these, not `text`.
+                "memory_ids": list(ingestion.memory_ids),
+                "stored_texts": list(ingestion.fact_texts),
                 "fact_type": _enum_value(fact.type),
                 "ttl_seconds": fact.ttl_seconds,
                 "contradicts_scenario": fact.contradicts_scenario,

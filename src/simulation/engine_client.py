@@ -339,13 +339,23 @@ class EngineClient:
             user_id=user_id,
             json_body={"user_id": user_id, "text": text, "scope": scope},
         )
+        memory_ids = _as_str_list(
+            _first_present(payload, "memory_ids", "fact_ids") or []
+        )
+        fact_id = self._coerce_id(
+            _first_present(payload, "fact_id", "memory_id", "id")
+        ) or (memory_ids[0] if memory_ids else None)
+        if fact_id and not memory_ids:
+            memory_ids = [fact_id]
         return IngestionResult(
             user_id=str(payload.get("user_id") or user_id),
             timestamp=_as_float(payload.get("timestamp"), None) or time.time(),
-            fact_id=self._coerce_id(_first_present(payload, "fact_id", "memory_id", "id")),
+            fact_id=fact_id,
             status=payload.get("status"),
             scope=payload.get("scope") or scope,
             latency_us=latency_us,
+            memory_ids=memory_ids,
+            fact_texts=_as_str_list(_first_present(payload, "facts", "fact_texts") or []),
             raw=payload,
         )
 

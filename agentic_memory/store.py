@@ -225,12 +225,12 @@ class SQLiteLanceDBStore:
     def cache_user_profile(self, user_id: str, stable_facts: List[str], recent_activity: List[str], ttl_seconds: float = None) -> None:
         import json
 
-        # Use configured TTL from environment or fall back to default 3600s.
-        # This allows the simulation system to override the cache TTL for testing
-        # (e.g., cache_002 scenario requires a lower TTL to observe misses).
-        # See Task 11: Configuration & Environment Setup.
+        # Default matches config.py's profile_cache_ttl_seconds so the engine and
+        # the simulation agree on the window. A run shorter than the TTL can never
+        # see a cache miss, nor a profile containing facts ingested during the run.
+        # Set PROFILE_CACHE_TTL_SECONDS=3600 for production.
         if ttl_seconds is None:
-            ttl_seconds = float(os.getenv("PROFILE_CACHE_TTL_SECONDS", "3600.0"))
+            ttl_seconds = float(os.getenv("PROFILE_CACHE_TTL_SECONDS", "30.0"))
 
         now = time.time()
         with self._lock:

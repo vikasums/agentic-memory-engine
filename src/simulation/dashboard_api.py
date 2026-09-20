@@ -233,7 +233,6 @@ async def lifespan(app: FastAPI):  # type: ignore
     validator_service = ValidatorService(
         engine_client=engine_client,
         audit_logger=audit_logger,
-        memory_db_path=None,  # Will use default
     )
 
     logger.info("Dashboard API services initialized")
@@ -311,6 +310,7 @@ async def start_simulation(request: StartRunRequest) -> StartRunResponse:
         )
     )
 
+    logger.info(f"Starting run {run_id}, duration {request.duration_seconds}s")
     current_run = RunState(
         run_id=run_id,
         run_number=1,

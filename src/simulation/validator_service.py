@@ -182,6 +182,23 @@ class _FactRef:
     contradicts_scenario: Optional[str] = None
     contradicts_fact_id: Optional[str] = None
     played: bool = True
+    #: Every memory id the engine created for this utterance.
+    memory_ids: List[str] = field(default_factory=list)
+    #: Normalised ``subject predicate object`` texts the engine stored. The
+    #: engine never stores the utterance itself, so comparing retrieved or
+    #: profiled text against ``text`` alone reports false mismatches.
+    stored_texts: List[str] = field(default_factory=list)
+
+    def match_texts(self) -> List[str]:
+        """Texts that legitimately identify this fact, stored form preferred."""
+        return [*self.stored_texts, self.text] if self.stored_texts else [self.text]
+
+    def known_ids(self) -> List[str]:
+        """Every id the engine may report for this fact."""
+        ids = [*self.memory_ids]
+        if self.fact_id and self.fact_id not in ids:
+            ids.append(self.fact_id)
+        return ids
 
     @property
     def is_profile_read(self) -> bool:
@@ -719,27 +736,40 @@ class ValidatorService:
 
     async def _api_state(self, ref: _FactRef) -> _MethodState:
         state = _MethodState(method="api")
-        outcome = await self.validate_via_api(ref.user_id, ref.text)
+        # Query with the stored triple when the engine reported one: retrieval
+        # ranks triples, so the utterance is a weaker query for its own fact.
+        candidates = ref.match_texts()
+        outcome = await self.validate_via_api(ref.user_id, candidates[0])
         state.detail["memories"] = len(outcome["memories"])
         if not outcome["available"]:
             state.reason = outcome["error"] or "retrieve unavailable"
             return state
+        known_ids = set(ref.known_ids())
         by_id = [
             memory
             for memory in outcome["memories"]
-            if ref.fact_id
-            and ref.fact_id in (memory.get("fact_id"), memory.get("source"))
+            if known_ids & {memory.get("fact_id"), memory.get("source")} - {None}
         ]
+        by_text = [
+            memory
+            for memory in outcome["memories"]
+            if any(
+                texts_match(candidate, memory["text"], self.match_threshold)
+                for candidate in candidates
+            )
+        ]
+        outcome = {**outcome, "matches": by_text or outcome["matches"]}
         state.available = True
-        state.exists = bool(outcome["found"] or by_id)
+        state.exists = bool(by_id or by_text or outcome["found"])
         # /retrieve only ranks active memories, so present == active.
         state.active = state.exists
         state.user_id = ref.user_id
         matches = by_id or outcome["matches"]
         if matches:
-            state.text = matches[0].get("text")
+            matched_text = matches[0].get("text")
+            state.text = matched_text
             state.detail["match_score"] = round(
-                text_overlap(ref.text, matches[0].get("text")), 3
+                max(text_overlap(candidate, matched_text) for candidate in candidates), 3
             )
             state.detail["matched_by"] = "fact_id" if by_id else "text"
         return state
@@ -1233,6 +1263,8 @@ class ValidatorService:
                     fact_type=fact_type,
                     fact_id=fact_id,
                     fact_id_source=source,
+                    memory_ids=list((record or {}).get("memory_ids") or []),
+                    stored_texts=list((record or {}).get("stored_texts") or []),
                     ttl_seconds=(
                         (record or {}).get("ttl_seconds")
                         if record is not None
@@ -1911,10 +1943,17 @@ class ValidatorService:
             entries = self._profile_entries(ctx, ref.user_id)
             if not entries:
                 continue
-            if any(texts_match(ref.text, entry, self.match_threshold) for entry in entries):
+            candidates = ref.match_texts()
+            if any(
+                texts_match(candidate, entry, self.match_threshold)
+                for entry in entries
+                for candidate in candidates
+            ):
                 reflected.append(ref.label())
             else:
-                absent.append({"fact": ref.label(), "text": ref.text})
+                absent.append(
+                    {"fact": ref.label(), "text": ref.text, "stored": ref.stored_texts}
+                )
         if not reflected and not absent:
             return CheckStatus.SKIPPED, {"reason": "profiles are empty"}
         if absent:
