@@ -64,6 +64,7 @@ from .models import (
     RunStatus,
     Scenario,
     ScenarioFact,
+    ValidationReport,
     ValidationResult,
 )
 from .monitoring_service import MonitoringService
@@ -616,6 +617,21 @@ class SimulationRunner:
         )
         result.fact_ids.setdefault(scenario.scenario_id, []).append(fact_id)
         result.ingested_count += 1
+        result.fact_records.append(
+            {
+                "scenario_id": scenario.scenario_id,
+                "fact_index": event.fact_index,
+                "fact_id": fact_id,
+                "fact_id_source": id_source,
+                "user_id": user_id,
+                "text": fact.text,
+                "fact_type": _enum_value(fact.type),
+                "ttl_seconds": fact.ttl_seconds,
+                "contradicts_scenario": fact.contradicts_scenario,
+                "contradicts_fact_id": prior[0] if prior is not None else None,
+                "scheduled_time": event.timestamp,
+            }
+        )
 
         # A contradiction only resolves against a fact of the *same* user.
         # Multi-user scenarios deliberately cross users and must leave both
@@ -976,12 +992,23 @@ class SimulationRunner:
             return
         try:
             kwargs: Dict[str, Any] = {}
+            params: Dict[str, Any] = {}
             try:
-                if "run_number" in inspect.signature(validate).parameters:
-                    kwargs["run_number"] = result.run_number
+                params = dict(inspect.signature(validate).parameters)
             except (TypeError, ValueError):  # pragma: no cover - builtins/mocks
-                pass
-            outcome = validate(list(scenarios), **kwargs)
+                params = {}
+            if "run_number" in params:
+                kwargs["run_number"] = result.run_number
+            if "run_result" in params:
+                kwargs["run_result"] = result
+            if "scenarios" in params:
+                # Task 7's ValidatorService.validate(run_number, scenarios,
+                # run_result) takes run_number first, so the scenarios have to
+                # go by keyword or they would bind to the wrong parameter.
+                kwargs["scenarios"] = list(scenarios)
+                outcome = validate(**kwargs)
+            else:
+                outcome = validate(list(scenarios), **kwargs)
             if inspect.isawaitable(outcome):
                 outcome = await outcome
         except NotImplementedError:
@@ -996,6 +1023,14 @@ class SimulationRunner:
 
         if outcome is None:
             result.validation_results = []
+        elif isinstance(outcome, ValidationReport):
+            result.validation_report = outcome
+            result.validation_results = outcome.results
+            if not outcome.passed:
+                result.notes.append(
+                    f"validation FAILED: {outcome.checks_failed} check(s) failed, "
+                    f"{len(outcome.cross_validation_errors)} cross-validation error(s)"
+                )
         elif isinstance(outcome, ValidationResult):
             result.validation_results = [outcome]
         else:

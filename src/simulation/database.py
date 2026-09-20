@@ -24,9 +24,34 @@ memory pruning or engine migrations.
 
 import os
 import sqlite3
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 DEFAULT_AUDIT_DB_PATH = "audit_log.db"
+
+#: The memory engine's own database. Owned by ``agentic_memory.store``; this
+#: module only *reads* it and can add columns an older file predates, because
+#: ValidatorService Method 1 (spec § 3.6) queries it directly.
+DEFAULT_MEMORY_DB_PATH = "memory.db"
+
+#: Columns ``agentic_memory.store.SQLiteLanceDBStore`` creates on
+#: ``memory_keys`` today. A ``memory.db`` written before commit ``f43ecde``
+#: (auto-expiry) has every column but ``expires_at``.
+MEMORY_KEYS_COLUMNS = (
+    "natural_key",
+    "memory_id",
+    "user_id",
+    "subject",
+    "predicate",
+    "object_value",
+    "scope",
+    "is_active",
+    "updated_at",
+    "expires_at",
+)
+
+#: Columns :func:`migrate_memory_db` knows how to add in place. Only nullable
+#: columns can be added by ``ALTER TABLE`` without rewriting existing rows.
+_MEMORY_KEYS_ADDABLE: Dict[str, str] = {"expires_at": "REAL"}
 
 #: Sub-second epoch default for ``audit_events.created_at`` (Task 1 finding 3).
 #: ``unixepoch('subsec')`` would be tidier but needs SQLite >= 3.42; this
@@ -205,6 +230,106 @@ def _rebuild_audit_events(conn: sqlite3.Connection) -> None:
 
 def _column_names(conn: sqlite3.Connection, table: str) -> List[str]:
     return [row["name"] for row in conn.execute(f"PRAGMA table_info({table})")]
+
+
+# ----------------------------------------------------------------------
+# memory.db (read-only, plus the one additive migration Task 1 flagged)
+# ----------------------------------------------------------------------
+
+
+def connect_memory_db(
+    db_path: str = DEFAULT_MEMORY_DB_PATH,
+    read_only: bool = True,
+) -> sqlite3.Connection:
+    """Open the engine's ``memory.db``.
+
+    Read-only by default: ValidatorService Method 1 (spec § 3.6) must never be
+    able to mutate the state it is auditing. Raises
+    :class:`FileNotFoundError` rather than letting SQLite create an empty file.
+    """
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"memory.db not found at {db_path!r}")
+    if read_only:
+        uri = f"file:{os.path.abspath(db_path)}?mode=ro"
+        conn = sqlite3.connect(uri, uri=True)
+    else:
+        conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def memory_db_status(db_path: str = DEFAULT_MEMORY_DB_PATH) -> Dict[str, Any]:
+    """Describe whether ``memory.db`` can serve Method 1.
+
+    Returns ``{path, exists, readable, has_memory_keys, columns,
+    missing_columns, needs_migration, error}``. ``needs_migration`` is True for
+    the stale file Task 1 found: ``memory_keys`` without ``expires_at``, which
+    the engine's pruner (and every expiry check) needs.
+    """
+    status: Dict[str, Any] = {
+        "path": db_path,
+        "exists": os.path.exists(db_path),
+        "readable": False,
+        "has_memory_keys": False,
+        "columns": [],
+        "missing_columns": [],
+        "needs_migration": False,
+        "error": None,
+    }
+    if not status["exists"]:
+        status["error"] = f"memory.db not found at {db_path!r}"
+        return status
+    try:
+        conn = connect_memory_db(db_path)
+    except Exception as exc:  # pragma: no cover - permissions / corruption
+        status["error"] = str(exc)
+        return status
+    try:
+        status["readable"] = True
+        columns = _column_names(conn, "memory_keys")
+        status["has_memory_keys"] = bool(columns)
+        status["columns"] = columns
+        if columns:
+            missing = [c for c in MEMORY_KEYS_COLUMNS if c not in columns]
+            status["missing_columns"] = missing
+            status["needs_migration"] = bool(missing)
+        else:
+            status["error"] = "memory.db has no memory_keys table"
+    except Exception as exc:  # pragma: no cover - corruption
+        status["error"] = str(exc)
+    finally:
+        conn.close()
+    return status
+
+
+def migrate_memory_db(db_path: str = DEFAULT_MEMORY_DB_PATH) -> List[str]:
+    """Add the columns a stale ``memory.db`` is missing; return their names.
+
+    Only additive ``ALTER TABLE ... ADD COLUMN`` statements are issued, so no
+    row is rewritten and nothing is deleted (spec § 7.2). Idempotent: a
+    current file returns ``[]``.
+
+    Task 1 flagged this as the pre-requisite for ValidatorService Method 1 —
+    a ``memory.db`` predating commit ``f43ecde`` has no ``expires_at``, so the
+    engine's pruner raises and no expiry scenario can be validated.
+    """
+    status = memory_db_status(db_path)
+    if status["error"] and not status["has_memory_keys"]:
+        raise RuntimeError(status["error"])
+    addable = [c for c in status["missing_columns"] if c in _MEMORY_KEYS_ADDABLE]
+    if not addable:
+        return []
+    conn = connect_memory_db(db_path, read_only=False)
+    try:
+        with conn:
+            for column in addable:
+                conn.execute(
+                    f"ALTER TABLE memory_keys ADD COLUMN {column} "
+                    f"{_MEMORY_KEYS_ADDABLE[column]}"
+                )
+    finally:
+        conn.close()
+    return addable
 
 
 def table_exists(db_path: str, table_name: str) -> bool:

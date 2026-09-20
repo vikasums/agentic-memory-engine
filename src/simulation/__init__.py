@@ -9,15 +9,22 @@ Phase 1 is deterministic — no LLM calls are made from this package.
 
 from .database import (
     DEFAULT_AUDIT_DB_PATH,
+    DEFAULT_MEMORY_DB_PATH,
+    MEMORY_KEYS_COLUMNS,
     connect,
+    connect_memory_db,
     init_audit_db,
+    memory_db_status,
     migrate_audit_db,
+    migrate_memory_db,
     table_exists,
 )
 from .models import (
     AuditEvent,
     AuditEventType,
     AuditSource,
+    CheckStatus,
+    CrossValidationError,
     ErrorClass,
     FactType,
     IngestionResult,
@@ -33,7 +40,9 @@ from .models import (
     Scenario,
     ScenarioCategory,
     ScenarioFact,
+    ScenarioValidation,
     StorageMetrics,
+    ValidationReport,
     ValidationResult,
 )
 from .audit_logger import (
@@ -70,19 +79,36 @@ from .simulation_runner import (
     build_event_queue,
     classify_engine_error,
 )
-from .validator_service import ValidatorService
+from .validator_service import (
+    DEFAULT_MATCH_THRESHOLD,
+    DEFAULT_RETRIEVE_TOP_K,
+    IMPLICIT_OUTCOMES,
+    PROFILE_FACT_ID_PREFIX,
+    SYNTHETIC_FACT_ID_PREFIX,
+    ValidatorService,
+    normalise_tokens,
+    text_overlap,
+    texts_match,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
     "DEFAULT_AUDIT_DB_PATH",
+    "DEFAULT_MEMORY_DB_PATH",
+    "MEMORY_KEYS_COLUMNS",
     "connect",
+    "connect_memory_db",
     "init_audit_db",
+    "memory_db_status",
     "migrate_audit_db",
+    "migrate_memory_db",
     "table_exists",
     "AuditEvent",
     "AuditEventType",
     "AuditSource",
+    "CheckStatus",
+    "CrossValidationError",
     "ErrorClass",
     "FactType",
     "IngestionResult",
@@ -98,7 +124,9 @@ __all__ = [
     "Scenario",
     "ScenarioCategory",
     "ScenarioFact",
+    "ScenarioValidation",
     "StorageMetrics",
+    "ValidationReport",
     "ValidationResult",
     "AuditLogger",
     "VALID_EVENT_TYPES",
@@ -127,5 +155,13 @@ __all__ = [
     "build_event_queue",
     "classify_engine_error",
     "ValidatorService",
+    "DEFAULT_MATCH_THRESHOLD",
+    "DEFAULT_RETRIEVE_TOP_K",
+    "IMPLICIT_OUTCOMES",
+    "PROFILE_FACT_ID_PREFIX",
+    "SYNTHETIC_FACT_ID_PREFIX",
+    "normalise_tokens",
+    "text_overlap",
+    "texts_match",
     "__version__",
 ]
