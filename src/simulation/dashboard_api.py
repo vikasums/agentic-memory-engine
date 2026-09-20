@@ -408,9 +408,10 @@ async def get_user_facts(user_id: str) -> List[FactResponse]:
         elif event.event_type in (AuditEventType.DEACTIVATED.value, AuditEventType.EXPIRED.value):
             facts[fact_id]["is_active"] = False
 
-        if event.event_type == AuditEventType.UPDATED.value and event.metadata:
-            if "contradicts_fact_id" in event.metadata:
-                facts[fact_id]["contradictions"].append(event.metadata["contradicts_fact_id"])
+        # Extract contradictions from after_state if present
+        if event.event_type == AuditEventType.UPDATED.value and event.after_state:
+            if "contradicts_fact_id" in event.after_state:
+                facts[fact_id]["contradictions"].append(event.after_state["contradicts_fact_id"])
 
     return [
         FactResponse(

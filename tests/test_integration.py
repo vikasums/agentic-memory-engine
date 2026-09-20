@@ -211,7 +211,7 @@ async def count_audit_events(
     Returns:
         Number of matching events
     """
-    params = {"limit": 10000}
+    params = {"limit": 1000}  # API max limit is 1000
     if event_type:
         params["event_type"] = event_type
     if user_id:
@@ -241,7 +241,7 @@ async def get_audit_events_list(
     Returns:
         List of event dicts
     """
-    params = {"limit": 10000}
+    params = {"limit": 1000}  # API max limit is 1000
     if event_type:
         params["event_type"] = event_type
     if user_id:
