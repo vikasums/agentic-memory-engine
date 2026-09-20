@@ -90,6 +90,7 @@ from .validator_service import (
     text_overlap,
     texts_match,
 )
+from .dashboard_api import app as dashboard_app
 
 __version__ = "0.1.0"
 
@@ -163,5 +164,6 @@ __all__ = [
     "normalise_tokens",
     "text_overlap",
     "texts_match",
+    "dashboard_app",
     "__version__",
 ]
