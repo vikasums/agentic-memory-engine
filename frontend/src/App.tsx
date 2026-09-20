@@ -22,6 +22,8 @@ import type { StatusResponse } from './types';
 
 type TabType = 'control' | 'users' | 'audit' | 'validation' | 'metrics';
 
+const STATUS_POLL_INTERVAL_MS = 1000;
+
 interface Toast {
   id: string;
   message: string;
@@ -31,18 +33,20 @@ interface Toast {
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('control');
   const [runId, setRunId] = useState<string | null>(null);
+  const [runFinished, setRunFinished] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Poll status when a run is active
+  // Poll status while a run is active. A finished run's status never changes
+  // again, so polling stops rather than hammering the endpoint forever.
   const [status, statusLoading, statusError] = usePolling(
     useCallback(() => {
       if (!runId) return Promise.reject(new Error('No run'));
       return simulationAPI.getStatus(runId);
     }, [runId]),
     {
-      interval: 500,
-      enabled: runId !== null,
+      interval: STATUS_POLL_INTERVAL_MS,
+      enabled: runId !== null && !runFinished,
       onError: (error) => {
         if (runId) {
           addToast(`Status polling failed: ${error.message}`, 'error');
@@ -59,22 +63,26 @@ export const App: React.FC = () => {
     }, 4000);
   };
 
-  const handleRunStart = (newRunId: string) => {
+  const handleRunStart = useCallback((newRunId: string) => {
+    setRunFinished(false);
     setRunId(newRunId);
     addToast('Simulation started', 'success');
-  };
+  }, []);
 
-  const handleRunStop = () => {
+  const handleRunStop = useCallback(() => {
+    setRunFinished(true);
     setRunId(null);
     addToast('Simulation stopped', 'info');
-  };
+  }, []);
 
   // Auto-switch to validation when run completes
   React.useEffect(() => {
     if (status?.status === 'completed') {
+      setRunFinished(true);
       addToast('Simulation completed', 'success');
       setTimeout(() => setActiveTab('validation'), 1000);
     } else if (status?.status === 'failed') {
+      setRunFinished(true);
       addToast('Simulation failed', 'error');
     }
   }, [status?.status]);
@@ -210,7 +218,8 @@ export const App: React.FC = () => {
 
               {activeTab === 'audit' && <AuditLogViewer />}
 
-              {activeTab === 'validation' && <ValidationDashboard />}
+              {/* Keyed by run so a new run clears the previous run's report. */}
+              {activeTab === 'validation' && <ValidationDashboard key={runId ?? 'no-run'} />}
 
               {activeTab === 'metrics' && <MetricsDisplay />}
             </main>

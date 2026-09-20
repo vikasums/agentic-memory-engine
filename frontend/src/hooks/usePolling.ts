@@ -18,53 +18,50 @@ export function usePolling<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
   const isMountedRef = useRef(true);
+  const fetchFnRef = useRef(fetchFn);
+  const onErrorRef = useRef(onError);
 
-  const poll = useCallback(async () => {
-    if (!enabled) return;
+  // Keep the latest callbacks without making `poll` a new function each render,
+  // which would tear down and restart the interval on every state update.
+  fetchFnRef.current = fetchFn;
+  onErrorRef.current = onError;
 
-    try {
-      setLoading(true);
-      const result = await fetchFn();
-      if (isMountedRef.current) {
-        setData(result);
-        setError(null);
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        setError(error);
-        if (onError) onError(error);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [fetchFn, enabled, onError]);
-
+  // StrictMode mounts, unmounts, then remounts in dev; the flag must be set on
+  // every mount, not just initialised once, or updates are dropped after remount.
   useEffect(() => {
-    if (!enabled) return;
-
-    // Poll immediately
-    poll();
-
-    // Set up interval
-    intervalIdRef.current = setInterval(poll, interval);
-
-    return () => {
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
-      }
-    };
-  }, [poll, interval, enabled]);
-
-  useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  const poll = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await fetchFnRef.current();
+      if (!isMountedRef.current) return;
+      setData(result);
+      setError(null);
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      const pollError = err instanceof Error ? err : new Error(String(err));
+      setError(pollError);
+      if (onErrorRef.current) onErrorRef.current(pollError);
+    } finally {
+      if (isMountedRef.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    poll();
+    const intervalId = setInterval(poll, interval);
+
+    return () => clearInterval(intervalId);
+  }, [poll, interval, enabled]);
 
   return [data, loading, error];
 }

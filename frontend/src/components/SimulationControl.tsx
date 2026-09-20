@@ -46,7 +46,6 @@ export const SimulationControl: React.FC<SimulationControlProps> = ({
       if (onRunStart) onRunStart(result.run_id);
     } catch (err) {
       console.error('Failed to start simulation:', err);
-      // Error toast would be shown by parent
     } finally {
       setIsStarting(false);
     }
@@ -124,7 +123,7 @@ export const SimulationControl: React.FC<SimulationControlProps> = ({
       </div>
 
       {/* Progress Bar */}
-      {isRunning && progress && (
+      {progress && (
         <div className="mb-6 space-y-3">
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div

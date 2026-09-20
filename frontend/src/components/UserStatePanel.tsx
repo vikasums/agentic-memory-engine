@@ -17,6 +17,8 @@ import { userAPI } from '../api/client';
 
 const USERS = ['user_1', 'user_2', 'user_3', 'user_4', 'user_5'];
 
+const USER_POLL_INTERVAL_MS = 2000;
+
 interface UserTabProps {
   user_id: string;
   isActive: boolean;
@@ -25,17 +27,17 @@ interface UserTabProps {
 const UserTab: React.FC<UserTabProps> = ({ user_id, isActive }) => {
   const [facts] = usePolling(
     useCallback(() => userAPI.getFacts(user_id), [user_id]),
-    { enabled: isActive },
+    { enabled: isActive, interval: USER_POLL_INTERVAL_MS },
   );
 
   const [memoryCount] = usePolling(
     useCallback(() => userAPI.getMemoryCount(user_id), [user_id]),
-    { enabled: isActive },
+    { enabled: isActive, interval: USER_POLL_INTERVAL_MS },
   );
 
   const [profileCache] = usePolling(
     useCallback(() => userAPI.getProfileCache(user_id), [user_id]),
-    { enabled: isActive },
+    { enabled: isActive, interval: USER_POLL_INTERVAL_MS },
   );
 
   const activeFacts = facts?.filter((f) => f.is_active) ?? [];

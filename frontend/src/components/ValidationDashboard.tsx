@@ -9,19 +9,35 @@
  * - Data from GET /validation/results, /validation/summary
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { usePolling } from '../hooks/usePolling';
 import { validationAPI } from '../api/client';
 import type { ValidationResultResponse, ValidationSummaryResponse } from '../types';
 
 export const ValidationDashboard: React.FC = () => {
+  // A validation report only exists once a run has finished, and it never
+  // changes afterwards, so polling stops as soon as one arrives.
+  const [reportLoaded, setReportLoaded] = useState(false);
+
   const [summary] = usePolling(useCallback(() => validationAPI.getSummary(), []), {
     interval: 1000,
+    enabled: !reportLoaded,
+    onError: () => {
+      // 400 until a run completes; the placeholder below covers that state.
+    },
   });
 
   const [results] = usePolling(useCallback(() => validationAPI.getResults(), []), {
     interval: 1000,
+    enabled: !reportLoaded,
+    onError: () => {
+      // Same as above.
+    },
   });
+
+  useEffect(() => {
+    if (summary && results && results.length > 0) setReportLoaded(true);
+  }, [summary, results]);
 
   const statusColor = (passed: boolean) => {
     return passed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20';
@@ -150,9 +166,9 @@ export const ValidationDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {results.map((result: ValidationResultResponse) => (
+              {results.map((result: ValidationResultResponse, index: number) => (
                 <tr
-                  key={result.scenario_id}
+                  key={`${result.scenario_id}:${result.outcome}:${index}`}
                   className={`${statusColor(result.passed)} hover:opacity-75 transition-opacity`}
                 >
                   <td className="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">

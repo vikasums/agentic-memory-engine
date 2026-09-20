@@ -33,7 +33,7 @@ export const AuditLogViewer: React.FC = () => {
         limit: 100,
       });
     }, [selectedUser, selectedEventType, searchFactId]),
-    { interval: 500 },
+    { interval: 2000 },
   );
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);

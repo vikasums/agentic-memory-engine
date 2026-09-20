@@ -17,7 +17,11 @@ import type {
   ValidationSummaryResponse,
 } from '../types';
 
-const API_BASE = 'http://localhost:8000';
+declare const __API_BASE_URL__: string | undefined;
+
+// Replaced at build time by Vite's `define`; falls back for test runners.
+const API_BASE =
+  typeof __API_BASE_URL__ !== 'undefined' ? __API_BASE_URL__ : 'http://localhost:8001';
 
 class APIError extends Error {
   constructor(
@@ -42,14 +46,14 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      console.error(`API Error (${response.status}): ${endpoint}`, error);
+      // Not logged here: several endpoints answer 4xx for ordinary states, such
+      // as /validation/summary before a run finishes. Callers decide what is noise.
       throw new APIError(response.status, error.detail || response.statusText);
     }
 
     return await response.json();
   } catch (error) {
     if (error instanceof APIError) throw error;
-    console.error(`Fetch Error: ${endpoint}`, error);
     throw new APIError(500, `Failed to fetch ${endpoint}`);
   }
 }

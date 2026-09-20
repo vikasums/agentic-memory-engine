@@ -38,7 +38,7 @@ describe('API Client', () => {
       const result = await simulationAPI.startRun(60);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/simulate/start',
+        'http://localhost:8001/simulate/start',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ duration_seconds: 60 }),
@@ -72,7 +72,7 @@ describe('API Client', () => {
       const result = await simulationAPI.getStatus('test123');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/simulate/test123/status',
+        'http://localhost:8001/simulate/test123/status',
         expect.any(Object),
       );
       expect(result).toEqual(mockStatus);
@@ -87,7 +87,7 @@ describe('API Client', () => {
       await simulationAPI.stopRun('test123');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/simulate/test123/stop',
+        'http://localhost:8001/simulate/test123/stop',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -112,7 +112,7 @@ describe('API Client', () => {
       const result = await userAPI.getFacts('user_1');
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/users/user_1/facts',
+        'http://localhost:8001/users/user_1/facts',
         expect.any(Object),
       );
       expect(result).toEqual(mockFacts);
@@ -171,7 +171,7 @@ describe('API Client', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('http://localhost:8000/audit/events?'),
+        expect.stringContaining('http://localhost:8001/audit/events?'),
         expect.any(Object),
       );
       expect(result).toEqual(mockEvents);

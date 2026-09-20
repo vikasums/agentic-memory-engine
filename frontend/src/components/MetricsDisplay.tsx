@@ -48,7 +48,7 @@ const StatTile: React.FC<StatTileProps> = ({ label, value, unit, icon, trend = '
 
 export const MetricsDisplay: React.FC = () => {
   const [metrics] = usePolling(useCallback(() => metricsAPI.getMetrics(), []), {
-    interval: 500,
+    interval: 2000,
   });
 
   if (!metrics) {
