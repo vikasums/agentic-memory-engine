@@ -23,6 +23,7 @@ import json
 import logging
 import tempfile
 import time
+from dataclasses import asdict
 import pytest
 from typing import Any, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -370,16 +371,22 @@ async def test_contradiction_lifecycle(async_client, test_settings):
     - Query /users/{user_id}/facts: old fact is_active=false, new fact is_active=true
     - Cross-validate via /validation/results
     """
-    # Generate a contradiction scenario
-    generator = ScenarioGenerator()
-    scenarios = generator.generate_contradiction_scenarios(count=2, seed=42)
+    # Take the contradiction scenarios out of the deterministic catalogue. Fact
+    # timestamps are drawn inside the run duration, so every fact is played.
+    generator = ScenarioGenerator(seed=42)
+    scenarios = [
+        scenario
+        for scenario in generator.generate(max_duration_seconds=3.0)
+        if scenario.category is ScenarioCategory.CONTRADICTION
+    ][:2]
+    assert scenarios, "Catalogue has no contradiction scenarios"
 
     # Start simulation with those scenarios
     response = await async_client.post(
         "/simulate/start",
         json={
             "duration_seconds": 3,
-            "scenarios": [s for s in scenarios[:2]],  # Send as dicts if possible
+            "scenarios": [asdict(scenario) for scenario in scenarios],
         },
     )
     assert response.status_code == 200

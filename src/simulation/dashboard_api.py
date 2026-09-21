@@ -197,9 +197,16 @@ def _status_from_runner(run_state: RunState) -> str:
     if run_state.task.done():
         if run_state.result is not None:
             return run_state.result.status
+        if run_state.task.cancelled():
+            # POST /simulate/{run_id}/stop cancels the task; a cancelled run is
+            # stopped, not failed. task.result() would raise CancelledError,
+            # which is a BaseException and so escapes an `except Exception`.
+            return "stopped"
         try:
             run_state.result = run_state.task.result()
             return run_state.result.status
+        except asyncio.CancelledError:
+            return "stopped"
         except Exception:
             return "failed"
     return "in_progress"

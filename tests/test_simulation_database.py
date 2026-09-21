@@ -115,10 +115,15 @@ def test_init_creates_parent_directory(tmp_path):
     assert os.path.exists(nested)
 
 
-def test_skeletons_raise_not_implemented():
-    # Implemented since this test was written: ScenarioGenerator.generate()
-    # (Task 2), AuditLogger (Task 3), EngineClient (Task 4),
-    # MonitoringService.get_metrics() (Task 5) and SimulationRunner.run()
-    # (Task 6). ValidatorService is the last skeleton — it lands in Task 7.
-    with pytest.raises(NotImplementedError):
-        simulation.ValidatorService().validate_via_db("fact_1", "user_1")
+def test_no_skeletons_left(tmp_path):
+    # Every skeleton this test used to guard is now implemented:
+    # ScenarioGenerator.generate() (Task 2), AuditLogger (Task 3),
+    # EngineClient (Task 4), MonitoringService.get_metrics() (Task 5),
+    # SimulationRunner.run() (Task 6) and ValidatorService (Task 7). The
+    # public entry points answer instead of raising NotImplementedError;
+    # their behaviour is covered in the per-module test files.
+    validator = simulation.ValidatorService(
+        memory_db_path=str(tmp_path / "missing_memory.db")
+    )
+    # No memory.db to read: a miss, not a crash.
+    assert validator.validate_via_db("fact_1", "user_1") is None
