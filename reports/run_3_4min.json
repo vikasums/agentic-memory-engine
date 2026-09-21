@@ -1,44 +1,83 @@
 {
-  "run_number": 3,
+  "run_number": 102,
   "duration_seconds": 240,
-  "start_time": 1789906148.5788212,
-  "end_time": 1789906388.577733,
-  "status": "failed",
+  "start_time": 1789964394.517699,
+  "end_time": 1789964635.53915,
+  "status": "completed",
   "scenario_summary": {
     "total_scenarios": 50,
+    "scenarios_passed": 44,
+    "scenarios_failed": 6,
     "facts_played": 120,
     "facts_skipped": 0,
-    "errors": 120
+    "errors": 0
   },
-  "validation_results": {},
+  "checks": {
+    "total": 411,
+    "passed": 291,
+    "failed": 2,
+    "skipped": 118
+  },
   "criterion_g_audit": {
-    "total_events": 120,
-    "events_per_fact": 1.0,
-    "audit_completeness": "PASS",
-    "notes": "Every fact has corresponding audit event"
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0,
+    "verdict": "PASS",
+    "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
   },
   "criterion_h_isolation": {
-    "user_cross_contamination": 0,
-    "user_isolation_checks": 5,
-    "isolation_pass_rate": 1.0,
-    "user_isolation": "PASS",
-    "notes": "No user fact leaks detected"
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0,
+    "verdict": "PASS",
+    "basis": "outcomes ['user_isolation_ok'] in this run's report"
+  },
+  "cross_validation_errors": 9,
+  "extraction_gaps": {
+    "utterances_played": 111,
+    "utterances_yielding_no_fact": 69,
+    "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
   },
   "metrics": {
+    "fact_count": 87,
+    "fact_ingested_count": 87,
+    "contradiction_count": 24,
+    "cache_hit_count": 3,
+    "cache_miss_count": 0,
+    "expiry_count": 0,
     "cache_hit_rate": 1.0,
-    "avg_latency_ms": 0.0,
-    "api_calls": 0,
-    "facts_created": 120,
-    "facts_updated": 0,
-    "facts_deactivated": 0,
-    "facts_expired": 0,
-    "storage_mb": {
-      "memory_db": 0.0,
-      "audit_log_db": 0.0
-    }
+    "avg_latency_us": 550476,
+    "min_latency_us": 4148,
+    "max_latency_us": 1653493,
+    "latency_count": 121,
+    "active_facts_by_user": {
+      "user_3": 22,
+      "user_1": 20,
+      "user_5": 21,
+      "user_2": 18,
+      "user_4": 6
+    },
+    "inactive_facts_by_user": {
+      "user_3": 1,
+      "user_1": 7,
+      "user_5": 7,
+      "user_2": 6,
+      "user_4": 3
+    },
+    "total_active_facts": 87,
+    "total_inactive_facts": 24,
+    "users": [
+      "user_1",
+      "user_2",
+      "user_3",
+      "user_4",
+      "user_5"
+    ],
+    "events_count": 120
   },
   "notes": [
-    "configured profile cache TTL 3600s is not shorter than the realised 102.105s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
-    "validation FAILED: 22 check(s) failed, 0 cross-validation error(s)"
-  ]
+    "cache_001#2 moved from 236.483s to 219.566s so its cache hit lands inside the 30s TTL",
+    "validation FAILED: 2 check(s) failed, 9 cross-validation error(s)"
+  ],
+  "sequence": 3
 }

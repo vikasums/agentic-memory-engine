@@ -1,49 +1,166 @@
 {
-  "timestamp": 1789906229.8709528,
-  "generated_at": "2026-09-20 16:10:29",
-  "total_runs": 4,
-  "all_runs_completed": false,
-  "total_duration_seconds": 780,
-  "total_facts_played": 840,
-  "total_facts_skipped": 0,
-  "total_errors": 240,
-  "total_scenarios": 200,
-  "average_cache_hit_rate": 0.94,
-  "average_latency_ms": 20.18,
-  "criterion_g_audit_pass": true,
-  "criterion_h_isolation_pass": true,
   "runs": [
     {
-      "run_number": 1,
-      "duration": 60,
-      "status": "failed",
-      "facts_played": 120,
-      "facts_skipped": 0,
-      "errors": 120
-    },
-    {
-      "run_number": 2,
-      "duration": 120,
-      "status": "failed",
-      "facts_played": 120,
-      "facts_skipped": 0,
-      "errors": 120
-    },
-    {
-      "run_number": 3,
-      "duration": 240,
+      "sequence": 1,
+      "run_number": 100,
+      "duration_seconds": 60,
       "status": "completed",
-      "facts_played": 240,
-      "facts_skipped": 0,
-      "errors": 0
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 43,
+        "scenarios_failed": 7,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 290,
+        "failed": 3,
+        "skipped": 118
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 10,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 69,
+        "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
+      }
     },
     {
-      "run_number": 4,
-      "duration": 360,
+      "sequence": 2,
+      "run_number": 101,
+      "duration_seconds": 120,
       "status": "completed",
-      "facts_played": 360,
-      "facts_skipped": 0,
-      "errors": 0
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 42,
+        "scenarios_failed": 8,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 293,
+        "failed": 4,
+        "skipped": 114
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 10,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 69,
+        "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
+      }
+    },
+    {
+      "sequence": 3,
+      "run_number": 102,
+      "duration_seconds": 240,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 44,
+        "scenarios_failed": 6,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 291,
+        "failed": 2,
+        "skipped": 118
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 69,
+        "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
+      }
+    },
+    {
+      "sequence": 4,
+      "run_number": 103,
+      "duration_seconds": 360,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 43,
+        "scenarios_failed": 7,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 299,
+        "failed": 3,
+        "skipped": 109
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 10,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 66,
+        "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
+      }
     }
-  ]
+  ],
+  "criterion_g_audit": "PASS",
+  "criterion_h_isolation": "PASS"
 }
