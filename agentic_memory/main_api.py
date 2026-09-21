@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Optional, List
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from .models import Scope
@@ -38,12 +38,28 @@ class RetrieveRequest(BaseModel):
     half_life_days: float = 30.0
     scope: Scope = Scope.USER
 
-@app.post("/ingest", status_code=202)
-async def ingest(payload: IngestRequest, bg_tasks: BackgroundTasks):
+class ProfileRequest(BaseModel):
+    user_id: str
+    recent_days: int = 7
+
+@app.post("/ingest")
+async def ingest(payload: IngestRequest):
     if not engine:
         raise HTTPException(500, "Engine uninitialized")
-    bg_tasks.add_task(engine.process_paragraph_async, payload.text, payload.user_id, payload.scope)
-    return {"status": "queued", "user_id": payload.user_id, "scope": payload.scope.value}
+    # Extraction runs inline so the response can carry the ids and normalised
+    # texts of what was stored; callers need them to verify the write landed.
+    extracted = await engine.process_paragraph_detailed(
+        payload.text, payload.user_id, payload.scope
+    )
+    memory_ids = [memory_id for memory_id, _ in extracted]
+    return {
+        "status": "processed",
+        "user_id": payload.user_id,
+        "scope": payload.scope.value,
+        "memory_ids": memory_ids,
+        "memory_id": memory_ids[0] if memory_ids else None,
+        "facts": [stored_text for _, stored_text in extracted],
+    }
 
 @app.post("/retrieve")
 async def retrieve(payload: RetrieveRequest):
@@ -74,6 +90,18 @@ async def retrieve(payload: RetrieveRequest):
         "query": payload.query,
         "memories": formatted_memories
     }
+
+@app.post("/profile")
+async def profile(payload: ProfileRequest):
+    if not engine:
+        raise HTTPException(500, "Engine uninitialized")
+    # Try cached profile first
+    cached = engine.get_user_profile(payload.user_id)
+    if cached:
+        return cached
+    # Generate new profile
+    profile_data = engine.generate_user_profile(payload.user_id, payload.recent_days)
+    return profile_data
 
 @app.get("/metrics")
 async def metrics():

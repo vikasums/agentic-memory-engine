@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic_memory"
-version = "0.2.0"
+version = "0.3.0"
 description = "A lightweight, pluggable long-term agentic memory engine for LLM personalization"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -40,7 +40,20 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "httpx>=0.24.0"
 ]
+simulation = [
+    "httpx>=0.24.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0"
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["agentic_memory*"]
+[project.scripts]
+agentic-memory = "agentic_memory.cli:main"
+
+[tool.setuptools]
+# Two roots: the engine package lives at the repo root, the simulation
+# subsystem lives under src/ (see docs/SIMULATION_SYSTEM_DESIGN.md).
+packages = ["agentic_memory", "simulation"]
+
+[tool.setuptools.package-dir]
+"" = "."
+"simulation" = "src/simulation"

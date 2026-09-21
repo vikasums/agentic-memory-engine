@@ -38,6 +38,11 @@ ENV/
 memory.db
 lancedb_data/
 
+# Simulation audit trail (regenerated per run)
+audit_log.db
+audit_log.db-shm
+audit_log.db-wal
+
 # macOS system files
 .DS_Store
 
@@ -46,3 +51,11 @@ lancedb_data/
 .vscode/
 *.swp
 *.swo
+
+# Node and frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env
+frontend/*.tsbuildinfo
+frontend/*.log

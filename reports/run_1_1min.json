@@ -1,0 +1,83 @@
+{
+  "run_number": 100,
+  "duration_seconds": 60,
+  "start_time": 1789964189.173567,
+  "end_time": 1789964257.496632,
+  "status": "completed",
+  "scenario_summary": {
+    "total_scenarios": 50,
+    "scenarios_passed": 43,
+    "scenarios_failed": 7,
+    "facts_played": 120,
+    "facts_skipped": 0,
+    "errors": 0
+  },
+  "checks": {
+    "total": 411,
+    "passed": 290,
+    "failed": 3,
+    "skipped": 118
+  },
+  "criterion_g_audit": {
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0,
+    "verdict": "PASS",
+    "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+  },
+  "criterion_h_isolation": {
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0,
+    "verdict": "PASS",
+    "basis": "outcomes ['user_isolation_ok'] in this run's report"
+  },
+  "cross_validation_errors": 10,
+  "extraction_gaps": {
+    "utterances_played": 111,
+    "utterances_yielding_no_fact": 69,
+    "note": "The engine's extractor returns no fact for some utterances; presence checks skip those rather than reporting a storage failure."
+  },
+  "metrics": {
+    "fact_count": 87,
+    "fact_ingested_count": 87,
+    "contradiction_count": 24,
+    "cache_hit_count": 6,
+    "cache_miss_count": 0,
+    "expiry_count": 0,
+    "cache_hit_rate": 1.0,
+    "avg_latency_us": 544582,
+    "min_latency_us": 982,
+    "max_latency_us": 1755730,
+    "latency_count": 121,
+    "active_facts_by_user": {
+      "user_3": 22,
+      "user_1": 20,
+      "user_5": 21,
+      "user_2": 18,
+      "user_4": 6
+    },
+    "inactive_facts_by_user": {
+      "user_3": 1,
+      "user_1": 7,
+      "user_5": 7,
+      "user_2": 6,
+      "user_4": 3
+    },
+    "total_active_facts": 87,
+    "total_inactive_facts": 24,
+    "users": [
+      "user_1",
+      "user_2",
+      "user_3",
+      "user_4",
+      "user_5"
+    ],
+    "events_count": 120
+  },
+  "notes": [
+    "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+    "validation FAILED: 3 check(s) failed, 10 cross-validation error(s)"
+  ],
+  "sequence": 1
+}

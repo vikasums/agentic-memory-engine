@@ -78,7 +78,17 @@ class SQLiteLanceDBStore:
                         object_value TEXT,
                         scope TEXT,
                         is_active INTEGER,
-                        updated_at REAL
+                        updated_at REAL,
+                        expires_at REAL
+                    )
+                """)
+                self.conn.execute("""
+                    CREATE TABLE IF NOT EXISTS user_profiles (
+                        user_id TEXT PRIMARY KEY,
+                        stable_facts TEXT,
+                        recent_activity TEXT,
+                        profile_timestamp REAL,
+                        ttl_seconds REAL
                     )
                 """)
 
@@ -106,7 +116,7 @@ class SQLiteLanceDBStore:
         subj = fact.subject.lower().strip()
         pred = fact.predicate.lower().strip()
         obj = fact.object_value.strip()
-        
+
         target_user = "GLOBAL" if scope == Scope.GLOBAL else user_id
         natural_key = f"{target_user}:{subj}:{pred}"
         memory_id = f"mem_{time.time_ns()}"
@@ -117,10 +127,10 @@ class SQLiteLanceDBStore:
             self.deactivate_by_key(natural_key)
             with self.conn:
                 self.conn.execute("""
-                    INSERT OR REPLACE INTO memory_keys 
-                    (natural_key, memory_id, user_id, subject, predicate, object_value, scope, is_active, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
-                """, (natural_key, memory_id, target_user, subj, pred, obj, scope.value, now))
+                    INSERT OR REPLACE INTO memory_keys
+                    (natural_key, memory_id, user_id, subject, predicate, object_value, scope, is_active, updated_at, expires_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """, (natural_key, memory_id, target_user, subj, pred, obj, scope.value, now, fact.expires_at))
 
         return memory_id
 
@@ -184,13 +194,15 @@ class SQLiteLanceDBStore:
         return scored_memories
 
     def delete_expired(self, inactive_cutoff: float, max_age_cutoff: float) -> int:
+        now = time.time()
         with self._lock:
             cursor = self.conn.cursor()
             cursor.execute("""
-                DELETE FROM memory_keys 
-                WHERE (is_active = 0 AND updated_at < ?) 
+                DELETE FROM memory_keys
+                WHERE (is_active = 0 AND updated_at < ?)
                    OR (updated_at < ?)
-            """, (inactive_cutoff, max_age_cutoff))
+                   OR (expires_at IS NOT NULL AND expires_at < ?)
+            """, (inactive_cutoff, max_age_cutoff, now))
             sql_deleted = cursor.rowcount
 
             delete_filter = (
@@ -209,6 +221,79 @@ class SQLiteLanceDBStore:
                 pass
 
         return sql_deleted
+
+    def cache_user_profile(self, user_id: str, stable_facts: List[str], recent_activity: List[str], ttl_seconds: float = None) -> None:
+        import json
+
+        # Default matches config.py's profile_cache_ttl_seconds so the engine and
+        # the simulation agree on the window. A run shorter than the TTL can never
+        # see a cache miss, nor a profile containing facts ingested during the run.
+        # Set PROFILE_CACHE_TTL_SECONDS=3600 for production.
+        if ttl_seconds is None:
+            ttl_seconds = float(os.getenv("PROFILE_CACHE_TTL_SECONDS", "30.0"))
+
+        now = time.time()
+        with self._lock:
+            with self.conn:
+                self.conn.execute("""
+                    INSERT OR REPLACE INTO user_profiles
+                    (user_id, stable_facts, recent_activity, profile_timestamp, ttl_seconds)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (user_id, json.dumps(stable_facts), json.dumps(recent_activity), now, ttl_seconds))
+
+    def get_cached_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        import json
+        with self._lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT stable_facts, recent_activity, profile_timestamp, ttl_seconds
+                FROM user_profiles WHERE user_id = ?
+            """, (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            stable_facts, recent_activity, profile_ts, ttl = row
+            now = time.time()
+            if now - profile_ts > ttl:
+                cursor.execute("DELETE FROM user_profiles WHERE user_id = ?", (user_id,))
+                return None
+
+            return {
+                "user_id": user_id,
+                "stable_facts": json.loads(stable_facts),
+                "recent_activity": json.loads(recent_activity),
+                "profile_timestamp": profile_ts
+            }
+
+    def resolve_contradiction(self, natural_key: str, old_value: str, new_value: str) -> str:
+        with self._lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT memory_id, subject, predicate, user_id, scope FROM memory_keys
+                WHERE natural_key = ? AND is_active = 1
+            """, (natural_key,))
+            existing = cursor.fetchone()
+            if existing:
+                old_id, subject, predicate, user_id, scope = existing
+                # Deactivate old memory
+                self.conn.execute(
+                    "UPDATE memory_keys SET is_active = 0 WHERE natural_key = ?",
+                    (natural_key,)
+                )
+                safe_old_id = old_id.replace("'", "''")
+                self.table.update(where=f"id = '{safe_old_id}'", values={"is_active": False})
+
+                # Create new memory with resolved value (natural_key is PRIMARY KEY, use INSERT OR REPLACE)
+                new_memory_id = f"mem_{time.time_ns()}"
+                self.conn.execute("""
+                    INSERT OR REPLACE INTO memory_keys
+                    (natural_key, memory_id, user_id, subject, predicate, object_value, scope, is_active, updated_at, expires_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NULL)
+                """, (natural_key, new_memory_id, user_id, subject, predicate, new_value, scope, time.time()))
+
+                return f"Resolved: '{old_value}' → '{new_value}' (new memory: {new_memory_id})"
+            return f"No active memory found for {natural_key}"
 
     def get_footprint(self) -> Dict[str, Any]:
         with self._lock:
