@@ -629,6 +629,7 @@ class SimulationRunner:
                 # utterance. Validation compares against these, not `text`.
                 "memory_ids": list(ingestion.memory_ids),
                 "stored_texts": list(ingestion.fact_texts),
+                "extraction_reported": ingestion.extraction_reported,
                 "fact_type": _enum_value(fact.type),
                 "ttl_seconds": fact.ttl_seconds,
                 "contradicts_scenario": fact.contradicts_scenario,

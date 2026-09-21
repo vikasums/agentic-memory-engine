@@ -347,6 +347,9 @@ class EngineClient:
         ) or (memory_ids[0] if memory_ids else None)
         if fact_id and not memory_ids:
             memory_ids = [fact_id]
+        reported = any(
+            key in payload for key in ("memory_ids", "fact_ids", "facts", "fact_texts")
+        )
         return IngestionResult(
             user_id=str(payload.get("user_id") or user_id),
             timestamp=_as_float(payload.get("timestamp"), None) or time.time(),
@@ -356,6 +359,7 @@ class EngineClient:
             latency_us=latency_us,
             memory_ids=memory_ids,
             fact_texts=_as_str_list(_first_present(payload, "facts", "fact_texts") or []),
+            extraction_reported=reported,
             raw=payload,
         )
 

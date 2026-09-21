@@ -188,6 +188,17 @@ class _FactRef:
     #: engine never stores the utterance itself, so comparing retrieved or
     #: profiled text against ``text`` alone reports false mismatches.
     stored_texts: List[str] = field(default_factory=list)
+    #: True when the engine reported what it extracted for this utterance.
+    extraction_reported: bool = False
+
+    @property
+    def extracted_nothing(self) -> bool:
+        """The extractor ran on this utterance and produced no fact.
+
+        There is then nothing in the store to retrieve or profile, so presence
+        checks report this as skipped rather than as a storage failure.
+        """
+        return self.extraction_reported and not self.memory_ids
 
     def match_texts(self) -> List[str]:
         """Texts that legitimately identify this fact, stored form preferred."""
@@ -374,6 +385,8 @@ class ValidatorService:
         self._memory_status: Optional[Dict[str, Any]] = None
         #: ``text -> owning user_id``, used for the § 6.1 criterion H leak test.
         self._owner_by_text: List[Tuple[str, str, str]] = []
+        #: ``user_id -> stored fact texts``, the store's own answer on ownership.
+        self._owned_texts_cache: Dict[str, List[str]] = {}
 
     # ------------------------------------------------------------------
     # Properties / lifecycle
@@ -486,6 +499,7 @@ class ValidatorService:
         self._retrieval_cache.clear()
         self._profile_cache.clear()
         self._owner_by_text = []
+        self._owned_texts_cache.clear()
 
     def _record_prerequisites(
         self, report: ValidationReport, memory_status: Dict[str, Any]
@@ -613,6 +627,22 @@ class ValidatorService:
             logger.warning("memory.db query failed: %s", exc)
             return []
         return [dict(row) for row in rows]
+
+    def _user_owns_text(self, user_id: str, text: str) -> bool:
+        """Does ``memory.db`` hold a fact of ``user_id``'s that matches ``text``?
+
+        Criterion H is about the store, not the script. A scenario assigning a
+        phrasing to one user does not stop another user legitimately holding
+        their own fact that reads the same way.
+        """
+        if not text:
+            return False
+        owned = self._owned_texts_cache.get(user_id)
+        if owned is None:
+            owned = [self._row_text(row) for row in self._db_rows_for_user(user_id)]
+            owned = [t for t in owned if t]
+            self._owned_texts_cache[user_id] = owned
+        return any(texts_match(t, text, self.match_threshold) for t in owned)
 
     @staticmethod
     def _row_text(row: Dict[str, Any]) -> str:
@@ -1109,6 +1139,18 @@ class ValidatorService:
                     detail="fact never ingested or no id recorded",
                 )
                 continue
+            if ref.extracted_nothing:
+                # The audit trail records the ingest attempt while the store
+                # holds nothing, so the methods disagree by construction. That
+                # is the extractor's silence, not a consistency failure.
+                ctx.note_missing(
+                    "extractor_produced_no_fact",
+                    fact_id=ref.fact_id,
+                    fact_index=ref.fact_index,
+                    user_id=ref.user_id,
+                    detail="engine reported no extracted fact for this utterance",
+                )
+                continue
             states = await self._collect_states(ref, index)
             ctx.states[ref.fact_id] = states
             comparison = self._compare(ref, states)
@@ -1265,6 +1307,9 @@ class ValidatorService:
                     fact_id_source=source,
                     memory_ids=list((record or {}).get("memory_ids") or []),
                     stored_texts=list((record or {}).get("stored_texts") or []),
+                    extraction_reported=bool(
+                        (record or {}).get("extraction_reported", False)
+                    ),
                     ttl_seconds=(
                         (record or {}).get("ttl_seconds")
                         if record is not None
@@ -1401,6 +1446,13 @@ class ValidatorService:
         refs = ctx.ingested
         if not refs:
             return CheckStatus.SKIPPED, {"reason": "scenario stores no facts"}
+        not_extracted = [r.label() for r in refs if r.extracted_nothing]
+        refs = [r for r in refs if not r.extracted_nothing]
+        if not refs:
+            return CheckStatus.SKIPPED, {
+                "reason": "the extractor produced no fact from these utterances",
+                "not_extracted": not_extracted,
+            }
         missing, stored, undecided = [], [], []
         for ref in refs:
             db = ctx.state(ref, "db")
@@ -1428,6 +1480,13 @@ class ValidatorService:
         expected = [r for r in ctx.ingested if r.fact_id not in ctx.superseded_by]
         if not expected:
             return CheckStatus.SKIPPED, {"reason": "no fact is expected to stay active"}
+        not_extracted = [r.label() for r in expected if r.extracted_nothing]
+        expected = [r for r in expected if not r.extracted_nothing]
+        if not expected:
+            return CheckStatus.SKIPPED, {
+                "reason": "the extractor produced no fact from these utterances",
+                "not_extracted": not_extracted,
+            }
         missing, found, undecided = [], [], []
         for ref in expected:
             api = ctx.state(ref, "api")
@@ -1443,13 +1502,21 @@ class ValidatorService:
                 else:
                     missing.append(entry)
         if missing:
-            return CheckStatus.FAILED, {"not_retrievable": missing}
+            return CheckStatus.FAILED, {
+                "not_retrievable": missing,
+                "not_extracted": not_extracted,
+            }
         if not found:
             return CheckStatus.SKIPPED, {
                 "reason": "/retrieve unavailable",
                 "undecided": undecided,
+                "not_extracted": not_extracted,
             }
-        return CheckStatus.PASSED, {"retrievable": found, "undecided": undecided}
+        return CheckStatus.PASSED, {
+            "retrievable": found,
+            "undecided": undecided,
+            "not_extracted": not_extracted,
+        }
 
     def _check_audit_event_logged(self, ctx: _Context, index: _AuditIndex):
         if self._audit is None and not index.events:
@@ -1539,16 +1606,23 @@ class ValidatorService:
                     )
                     if leak is not None:
                         # Skip if this is an expected cross-user contradiction
-                        if (user_id, leak[1]) not in cross_user_pairs:
-                            problems.append(
-                                {
-                                    "where": "profile",
-                                    "user_id": user_id,
-                                    "leaked_text": entry,
-                                    "owner": leak[1],
-                                    "owner_scenario": leak[2],
-                                }
-                            )
+                        if (user_id, leak[1]) in cross_user_pairs:
+                            continue
+                        # The scenario script says another user owns this text,
+                        # but scripts reuse phrasings across users. Only the
+                        # store settles ownership: if this user holds a matching
+                        # fact of their own, their profile is entitled to it.
+                        if self._user_owns_text(user_id, entry):
+                            continue
+                        problems.append(
+                            {
+                                "where": "profile",
+                                "user_id": user_id,
+                                "leaked_text": entry,
+                                "owner": leak[1],
+                                "owner_scenario": leak[2],
+                            }
+                        )
 
         leaks = self._retrieval_leaks(ctx)
         checks_run += len(leaks["checked"])
@@ -1577,12 +1651,11 @@ class ValidatorService:
                         continue
                     if not texts_match(owner_text, text, self.match_threshold):
                         continue
-                    # Two users may legitimately state the same thing; only a
-                    # text no user of this run owns as *their own* is a leak.
-                    if any(
-                        o == user_id and texts_match(t, text, self.match_threshold)
-                        for t, o, _ in self._owner_by_text
-                    ):
+                    # Two users may legitimately state the same thing, and the
+                    # script's assignment does not settle ownership — the store
+                    # does. If this user holds a matching fact of their own,
+                    # /retrieve returning it is correct, not a leak.
+                    if self._user_owns_text(user_id, text):
                         continue
                     problems.append(
                         {
@@ -1938,6 +2011,13 @@ class ValidatorService:
         expected = [r for r in ctx.ingested if r.fact_id not in ctx.superseded_by]
         if not expected:
             return CheckStatus.SKIPPED, {"reason": "scenario stores no lasting fact"}
+        not_extracted = [r.label() for r in expected if r.extracted_nothing]
+        expected = [r for r in expected if not r.extracted_nothing]
+        if not expected:
+            return CheckStatus.SKIPPED, {
+                "reason": "the extractor produced no fact from these utterances",
+                "not_extracted": not_extracted,
+            }
         reflected, absent = [], []
         for ref in expected:
             entries = self._profile_entries(ctx, ref.user_id)
@@ -1957,8 +2037,15 @@ class ValidatorService:
         if not reflected and not absent:
             return CheckStatus.SKIPPED, {"reason": "profiles are empty"}
         if absent:
-            return CheckStatus.FAILED, {"not_in_profile": absent, "reflected": reflected}
-        return CheckStatus.PASSED, {"reflected": reflected}
+            return CheckStatus.FAILED, {
+                "not_in_profile": absent,
+                "reflected": reflected,
+                "not_extracted": not_extracted,
+            }
+        return CheckStatus.PASSED, {
+            "reflected": reflected,
+            "not_extracted": not_extracted,
+        }
 
     def _cache_expectation(self, ctx: _Context, expected: str):
         relevant = [c for c in ctx.cache_checks if c.get("expected") == expected]

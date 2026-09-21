@@ -171,7 +171,16 @@ class IngestionResult:
     memory_ids: List[str] = field(default_factory=list)
     #: The normalised ``subject predicate object`` text stored for each id.
     fact_texts: List[str] = field(default_factory=list)
+    #: True when the engine reported what it extracted. Distinguishes "the
+    #: extractor found nothing in this utterance" from "this deployment's
+    #: /ingest does not report ids at all", which look identical otherwise.
+    extraction_reported: bool = False
     raw: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def extracted_nothing(self) -> bool:
+        """The engine ran extraction on this utterance and stored no fact."""
+        return self.extraction_reported and not self.memory_ids
 
 
 @dataclass
