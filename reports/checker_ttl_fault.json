@@ -1,0 +1,159 @@
+{
+  "generated_at": 1790441677.403957,
+  "purpose": "Track T1: the pre-fix validation numbers were produced by the harness, not the engine. Every arm below plays the same 50 scenarios against the same running engine; only the checker's faults differ.",
+  "duration_seconds": 60,
+  "scenarios": {
+    "count": 50,
+    "seed": 42
+  },
+  "engine": {
+    "base_url": "http://localhost:8000",
+    "harness_assumed_profile_cache_ttl_seconds": 30,
+    "operator_declared_profile_cache_ttl_seconds": 3600.0,
+    "metrics_at_start": {
+      "sqlite_file_size_kb": 48.0,
+      "lancedb_folder_size_kb": 109416.48,
+      "active_memories": 125,
+      "inactive_memories": 0,
+      "lancedb_total_rows": 1847
+    },
+    "note": "The engine process is not restarted between arms, so every arm reads the same store. Facts from earlier arms therefore remain present; scenario keys are reused, so repeated arms overwrite rather than accumulate."
+  },
+  "excluded_faults": {},
+  "arms": [
+    {
+      "arm": "baseline",
+      "faults": [],
+      "fault_details": {},
+      "run_number": 112,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 80.809,
+      "harness_assumed_profile_cache_ttl_seconds": 30,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 41,
+        "scenarios_failed": 9,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 292,
+        "failed": 5,
+        "skipped": 114
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 11,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 69
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 4,
+        "profile_refreshed_on_new_fact": 1
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 5 check(s) failed, 11 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "assume_long_profile_cache",
+      "faults": [
+        "assume_long_profile_cache"
+      ],
+      "fault_details": {
+        "assume_long_profile_cache": {
+          "commit": "2132dc8",
+          "description": "the engine's profile cache TTL defaulted to 3600s while runs lasted 60-360s, so checks read a profile cached before the run began (deployment setting, not harness logic)"
+        }
+      },
+      "run_number": 113,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 139.593,
+      "harness_assumed_profile_cache_ttl_seconds": 3600.0,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 42,
+        "scenarios_failed": 8,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 293,
+        "failed": 4,
+        "skipped": 114
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 70
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 2,
+        "profile_refreshed_on_new_fact": 1,
+        "cache_miss_recorded": 1
+      },
+      "notes": [
+        "configured profile cache TTL 3600s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 4 check(s) failed, 9 cross-validation error(s)"
+      ]
+    }
+  ],
+  "attribution": [
+    {
+      "arm": "assume_long_profile_cache",
+      "faults": [
+        "assume_long_profile_cache"
+      ],
+      "commits": [
+        "2132dc8"
+      ],
+      "descriptions": [
+        "the engine's profile cache TTL defaulted to 3600s while runs lasted 60-360s, so checks read a profile cached before the run began (deployment setting, not harness logic)"
+      ],
+      "scenarios_passed": 42,
+      "scenarios_passed_delta": 1,
+      "checks_failed": 4,
+      "checks_failed_delta": -1,
+      "checks_passed_delta": 1,
+      "checks_skipped_delta": 0,
+      "cross_validation_errors": 9,
+      "cross_validation_errors_delta": -2,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "PASS"
+    }
+  ]
+}

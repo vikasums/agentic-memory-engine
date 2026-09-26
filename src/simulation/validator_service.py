@@ -49,6 +49,7 @@ from .database import (
     memory_db_status,
 )
 from .engine_client import EngineClient, EngineClientError
+from .legacy_checker import LegacyCheckerConfig
 from .models import (
     AuditEvent,
     AuditEventType,
@@ -346,6 +347,7 @@ class ValidatorService:
         strict: bool = False,
         retrieve_top_k: int = DEFAULT_RETRIEVE_TOP_K,
         match_threshold: float = DEFAULT_MATCH_THRESHOLD,
+        legacy: Optional[LegacyCheckerConfig] = None,
     ) -> None:
         # The Task 1 skeleton's signature was
         # ``(memory_db_path, audit_db_path, client)``; keep those call sites
@@ -364,6 +366,14 @@ class ValidatorService:
         self.strict = strict
         self.retrieve_top_k = retrieve_top_k
         self.match_threshold = match_threshold
+        #: Pre-fix measurement faults to reintroduce, for the track T1 A/B. All
+        #: off by default, and none of them touches the engine.
+        self.legacy = legacy or LegacyCheckerConfig()
+        if self.legacy.any_enabled:
+            logger.warning(
+                "validator running with legacy faults enabled: %s",
+                ", ".join(self.legacy.enabled_faults),
+            )
 
         self._audit = audit_logger
         self._owns_audit = False
@@ -628,6 +638,32 @@ class ValidatorService:
             return []
         return [dict(row) for row in rows]
 
+    # ------------------------------------------------------------------
+    # Legacy-aware accessors. Each one is the single place a pre-fix fault
+    # changes what the checker believes, so the A/B runs differ only here.
+    # ------------------------------------------------------------------
+
+    def _match_texts(self, ref: _FactRef) -> List[str]:
+        """Texts that legitimately identify this fact.
+
+        Pre-fix the harness knew only the utterance, and the engine stores a
+        ``subject predicate object`` triple, so every comparison ran against
+        text the engine never wrote.
+        """
+        if self.legacy.compare_utterance_text:
+            return [ref.text]
+        return ref.match_texts()
+
+    def _extracted_nothing(self, ref: _FactRef) -> bool:
+        """Did the extractor run on this utterance and produce no fact?
+
+        Pre-fix that case was indistinguishable from a storage failure, so
+        presence checks failed on an absence the run never caused.
+        """
+        if self.legacy.silence_is_failure:
+            return False
+        return ref.extracted_nothing
+
     def _user_owns_text(self, user_id: str, text: str) -> bool:
         """Does ``memory.db`` hold a fact of ``user_id``'s that matches ``text``?
 
@@ -635,6 +671,10 @@ class ValidatorService:
         phrasing to one user does not stop another user legitimately holding
         their own fact that reads the same way.
         """
+        if self.legacy.script_decides_ownership:
+            # Pre-fix the store was never asked: the script's assignment of a
+            # phrasing to one user decided ownership by itself.
+            return False
         if not text:
             return False
         owned = self._owned_texts_cache.get(user_id)
@@ -768,7 +808,7 @@ class ValidatorService:
         state = _MethodState(method="api")
         # Query with the stored triple when the engine reported one: retrieval
         # ranks triples, so the utterance is a weaker query for its own fact.
-        candidates = ref.match_texts()
+        candidates = self._match_texts(ref)
         outcome = await self.validate_via_api(ref.user_id, candidates[0])
         state.detail["memories"] = len(outcome["memories"])
         if not outcome["available"]:
@@ -1139,7 +1179,7 @@ class ValidatorService:
                     detail="fact never ingested or no id recorded",
                 )
                 continue
-            if ref.extracted_nothing:
+            if self._extracted_nothing(ref):
                 # The audit trail records the ingest attempt while the store
                 # holds nothing, so the methods disagree by construction. That
                 # is the extractor's silence, not a consistency failure.
@@ -1296,6 +1336,20 @@ class ValidatorService:
                 fact_id = f"{SYNTHETIC_FACT_ID_PREFIX}{scenario.scenario_id}:{index}"
                 source, played = "assumed", True
 
+            memory_ids = list((record or {}).get("memory_ids") or [])
+            stored_texts = list((record or {}).get("stored_texts") or [])
+            extraction_reported = bool((record or {}).get("extraction_reported", False))
+            if self.legacy.synthetic_fact_ids:
+                # Pre-fix ``/ingest`` answered 202 with no body, so the harness
+                # had no engine id, no stored triple and no extraction flag.
+                fact_id = (
+                    f"{SYNTHETIC_FACT_ID_PREFIX}{scenario.scenario_id}:{index}"
+                    if played
+                    else fact_id
+                )
+                source = "assumed" if played else source
+                memory_ids, stored_texts, extraction_reported = [], [], False
+
             refs.append(
                 _FactRef(
                     scenario_id=scenario.scenario_id,
@@ -1305,11 +1359,9 @@ class ValidatorService:
                     fact_type=fact_type,
                     fact_id=fact_id,
                     fact_id_source=source,
-                    memory_ids=list((record or {}).get("memory_ids") or []),
-                    stored_texts=list((record or {}).get("stored_texts") or []),
-                    extraction_reported=bool(
-                        (record or {}).get("extraction_reported", False)
-                    ),
+                    memory_ids=memory_ids,
+                    stored_texts=stored_texts,
+                    extraction_reported=extraction_reported,
                     ttl_seconds=(
                         (record or {}).get("ttl_seconds")
                         if record is not None
@@ -1446,8 +1498,8 @@ class ValidatorService:
         refs = ctx.ingested
         if not refs:
             return CheckStatus.SKIPPED, {"reason": "scenario stores no facts"}
-        not_extracted = [r.label() for r in refs if r.extracted_nothing]
-        refs = [r for r in refs if not r.extracted_nothing]
+        not_extracted = [r.label() for r in refs if self._extracted_nothing(r)]
+        refs = [r for r in refs if not self._extracted_nothing(r)]
         if not refs:
             return CheckStatus.SKIPPED, {
                 "reason": "the extractor produced no fact from these utterances",
@@ -1480,8 +1532,8 @@ class ValidatorService:
         expected = [r for r in ctx.ingested if r.fact_id not in ctx.superseded_by]
         if not expected:
             return CheckStatus.SKIPPED, {"reason": "no fact is expected to stay active"}
-        not_extracted = [r.label() for r in expected if r.extracted_nothing]
-        expected = [r for r in expected if not r.extracted_nothing]
+        not_extracted = [r.label() for r in expected if self._extracted_nothing(r)]
+        expected = [r for r in expected if not self._extracted_nothing(r)]
         if not expected:
             return CheckStatus.SKIPPED, {
                 "reason": "the extractor produced no fact from these utterances",
@@ -2011,8 +2063,8 @@ class ValidatorService:
         expected = [r for r in ctx.ingested if r.fact_id not in ctx.superseded_by]
         if not expected:
             return CheckStatus.SKIPPED, {"reason": "scenario stores no lasting fact"}
-        not_extracted = [r.label() for r in expected if r.extracted_nothing]
-        expected = [r for r in expected if not r.extracted_nothing]
+        not_extracted = [r.label() for r in expected if self._extracted_nothing(r)]
+        expected = [r for r in expected if not self._extracted_nothing(r)]
         if not expected:
             return CheckStatus.SKIPPED, {
                 "reason": "the extractor produced no fact from these utterances",
@@ -2023,7 +2075,7 @@ class ValidatorService:
             entries = self._profile_entries(ctx, ref.user_id)
             if not entries:
                 continue
-            candidates = ref.match_texts()
+            candidates = self._match_texts(ref)
             if any(
                 texts_match(candidate, entry, self.match_threshold)
                 for entry in entries

@@ -1,0 +1,770 @@
+{
+  "generated_at": 1790439607.59396,
+  "purpose": "Track T1: the pre-fix validation numbers were produced by the harness, not the engine. Every arm below plays the same 50 scenarios against the same running engine; only the checker's faults differ.",
+  "duration_seconds": 60,
+  "scenarios": {
+    "count": 50,
+    "seed": 42
+  },
+  "engine": {
+    "base_url": "http://localhost:8000",
+    "harness_assumed_profile_cache_ttl_seconds": 30,
+    "operator_declared_profile_cache_ttl_seconds": 30.0,
+    "metrics_at_start": {
+      "sqlite_file_size_kb": 48.0,
+      "lancedb_folder_size_kb": 84062.73,
+      "active_memories": 122,
+      "inactive_memories": 0,
+      "lancedb_total_rows": 1453
+    },
+    "note": "The engine process is not restarted between arms, so every arm reads the same store. Facts from earlier arms therefore remain present; scenario keys are reused, so repeated arms overwrite rather than accumulate."
+  },
+  "excluded_faults": {
+    "assume_long_profile_cache": "deployment setting, not harness logic: needs the engine restarted with PROFILE_CACHE_TTL_SECONDS=3600"
+  },
+  "arms": [
+    {
+      "arm": "baseline",
+      "faults": [],
+      "fault_details": {},
+      "run_number": 105,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 73.863,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 43,
+        "scenarios_failed": 7,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 303,
+        "failed": 1,
+        "skipped": 107
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 67
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 1
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 1 check(s) failed, 9 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "synthetic_fact_ids",
+      "faults": [
+        "synthetic_fact_ids"
+      ],
+      "fault_details": {
+        "synthetic_fact_ids": {
+          "commit": "2132dc8",
+          "description": "/ingest was fire-and-forget, so the harness invented sim:<scenario>:<index> ids while the engine stored mem_* ids"
+        }
+      },
+      "run_number": 106,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 83.149,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 0,
+        "scenarios_failed": 50,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 265,
+        "failed": 82,
+        "skipped": 64
+      },
+      "criterion_g_audit": {
+        "passed": 47,
+        "failed": 29,
+        "skipped": 0,
+        "verdict": "FAIL",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 51,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 67
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 48,
+        "audit_event_logged": 21,
+        "audit_trail_complete": 8,
+        "profile_reflects_facts": 5
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 82 check(s) failed, 51 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "compare_utterance_text",
+      "faults": [
+        "compare_utterance_text"
+      ],
+      "fault_details": {
+        "compare_utterance_text": {
+          "commit": "2132dc8",
+          "description": "the harness compared the scenario sentence against the stored 'subject predicate object' triple, scoring 0.500 against a 0.6 bar"
+        }
+      },
+      "run_number": 107,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 101.603,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 41,
+        "scenarios_failed": 9,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 293,
+        "failed": 10,
+        "skipped": 108
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 66
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 7,
+        "profile_reflects_facts": 3
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 10 check(s) failed, 9 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "silence_is_failure",
+      "faults": [
+        "silence_is_failure"
+      ],
+      "fault_details": {
+        "silence_is_failure": {
+          "commit": "b779619",
+          "description": "an utterance the extractor found no fact in was reported as a storage failure rather than skipped"
+        }
+      },
+      "run_number": 108,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 99.877,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 8,
+        "scenarios_failed": 42,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 329,
+        "failed": 39,
+        "skipped": 43
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 59,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 68
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 36,
+        "profile_reflects_facts": 3
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 39 check(s) failed, 59 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "script_decides_ownership",
+      "faults": [
+        "script_decides_ownership"
+      ],
+      "fault_details": {
+        "script_decides_ownership": {
+          "commit": "b779619",
+          "description": "criterion H was decided by the scenario script's phrasing rather than by who owns the text in memory.db"
+        }
+      },
+      "run_number": 109,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 96.123,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 0,
+        "scenarios_failed": 50,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 244,
+        "failed": 51,
+        "skipped": 116
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 0,
+        "failed": 50,
+        "skipped": 0,
+        "verdict": "FAIL",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 69
+      },
+      "failed_outcomes": {
+        "user_isolation_ok": 50,
+        "fact_retrievable": 1
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 51 check(s) failed, 9 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "reuse_run_number",
+      "faults": [
+        "reuse_run_number"
+      ],
+      "fault_details": {
+        "reuse_run_number": {
+          "commit": "8a80d91",
+          "description": "every run reused run_number=1, so validation replayed earlier runs out of audit_log.db and manufactured cross-user findings"
+        }
+      },
+      "run_number": 1,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 94.182,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 12,
+        "scenarios_failed": 38,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 263,
+        "failed": 32,
+        "skipped": 116
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 20,
+        "failed": 30,
+        "skipped": 0,
+        "verdict": "FAIL",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 9,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 71
+      },
+      "failed_outcomes": {
+        "user_isolation_ok": 30,
+        "fact_retrievable": 1,
+        "cache_hit_recorded": 1
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 32 check(s) failed, 9 cross-validation error(s)"
+      ]
+    },
+    {
+      "arm": "literal_verdicts",
+      "faults": [
+        "literal_verdicts"
+      ],
+      "fault_details": {
+        "literal_verdicts": {
+          "commit": "8a80d91",
+          "description": "the report writer asserted \"user_isolation\": \"PASS\" and isolation_pass_rate: 1.0 unconditionally, and decided audit completeness by events_played > 0 rather than by any audit check"
+        }
+      },
+      "run_number": 110,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 94.557,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 42,
+        "scenarios_failed": 8,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 293,
+        "failed": 2,
+        "skipped": 116
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 10,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 70
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 2
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 2 check(s) failed, 10 cross-validation error(s)"
+      ],
+      "report_writer_would_have_published": {
+        "criterion_g_audit": {
+          "passed": 76,
+          "failed": 0,
+          "skipped": 0,
+          "verdict": "PASS",
+          "basis": "events_played > 0"
+        },
+        "criterion_h_isolation": {
+          "passed": 50,
+          "failed": 0,
+          "skipped": 0,
+          "verdict": "PASS",
+          "isolation_pass_rate": 1.0,
+          "basis": "literal written by the report writer"
+        }
+      }
+    },
+    {
+      "arm": "all_harness_faults",
+      "faults": [
+        "synthetic_fact_ids",
+        "compare_utterance_text",
+        "silence_is_failure",
+        "script_decides_ownership",
+        "reuse_run_number",
+        "literal_verdicts"
+      ],
+      "fault_details": {
+        "synthetic_fact_ids": {
+          "commit": "2132dc8",
+          "description": "/ingest was fire-and-forget, so the harness invented sim:<scenario>:<index> ids while the engine stored mem_* ids"
+        },
+        "compare_utterance_text": {
+          "commit": "2132dc8",
+          "description": "the harness compared the scenario sentence against the stored 'subject predicate object' triple, scoring 0.500 against a 0.6 bar"
+        },
+        "silence_is_failure": {
+          "commit": "b779619",
+          "description": "an utterance the extractor found no fact in was reported as a storage failure rather than skipped"
+        },
+        "script_decides_ownership": {
+          "commit": "b779619",
+          "description": "criterion H was decided by the scenario script's phrasing rather than by who owns the text in memory.db"
+        },
+        "reuse_run_number": {
+          "commit": "8a80d91",
+          "description": "every run reused run_number=1, so validation replayed earlier runs out of audit_log.db and manufactured cross-user findings"
+        },
+        "literal_verdicts": {
+          "commit": "8a80d91",
+          "description": "the report writer asserted \"user_isolation\": \"PASS\" and isolation_pass_rate: 1.0 unconditionally, and decided audit completeness by events_played > 0 rather than by any audit check"
+        }
+      },
+      "run_number": 1,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 99.809,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 0,
+        "scenarios_failed": 50,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 259,
+        "failed": 103,
+        "skipped": 49
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 0,
+        "failed": 50,
+        "skipped": 0,
+        "verdict": "FAIL",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 83,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 68
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 48,
+        "user_isolation_ok": 50,
+        "profile_reflects_facts": 5
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 103 check(s) failed, 83 cross-validation error(s)"
+      ],
+      "report_writer_would_have_published": {
+        "criterion_g_audit": {
+          "passed": 76,
+          "failed": 0,
+          "skipped": 0,
+          "verdict": "PASS",
+          "basis": "events_played > 0"
+        },
+        "criterion_h_isolation": {
+          "passed": 0,
+          "failed": 50,
+          "skipped": 0,
+          "verdict": "PASS",
+          "isolation_pass_rate": 1.0,
+          "basis": "literal written by the report writer"
+        }
+      }
+    },
+    {
+      "arm": "baseline_repeat",
+      "faults": [],
+      "fault_details": {},
+      "run_number": 111,
+      "duration_seconds": 60,
+      "wall_clock_seconds": 98.321,
+      "status": "completed",
+      "scenario_summary": {
+        "total_scenarios": 50,
+        "scenarios_passed": 43,
+        "scenarios_failed": 7,
+        "facts_played": 120,
+        "facts_skipped": 0,
+        "errors": 0
+      },
+      "checks": {
+        "total": 411,
+        "passed": 290,
+        "failed": 3,
+        "skipped": 118
+      },
+      "criterion_g_audit": {
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['audit_event_logged', 'audit_trail_complete'] in this run's report"
+      },
+      "criterion_h_isolation": {
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0,
+        "verdict": "PASS",
+        "basis": "outcomes ['user_isolation_ok'] in this run's report"
+      },
+      "cross_validation_errors": 10,
+      "extraction_gaps": {
+        "utterances_played": 111,
+        "utterances_yielding_no_fact": 70
+      },
+      "failed_outcomes": {
+        "fact_retrievable": 3
+      },
+      "notes": [
+        "configured profile cache TTL 30s is not shorter than the realised 27.614s gap before the cache_002 read; its miss expectation is marked unsatisfiable",
+        "validation FAILED: 3 check(s) failed, 10 cross-validation error(s)"
+      ]
+    }
+  ],
+  "attribution": [
+    {
+      "arm": "synthetic_fact_ids",
+      "faults": [
+        "synthetic_fact_ids"
+      ],
+      "commits": [
+        "2132dc8"
+      ],
+      "descriptions": [
+        "/ingest was fire-and-forget, so the harness invented sim:<scenario>:<index> ids while the engine stored mem_* ids"
+      ],
+      "scenarios_passed": 0,
+      "scenarios_passed_delta": -43,
+      "checks_failed": 82,
+      "checks_failed_delta": 81,
+      "checks_passed_delta": -38,
+      "checks_skipped_delta": -43,
+      "cross_validation_errors": 51,
+      "cross_validation_errors_delta": 42,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "FAIL"
+    },
+    {
+      "arm": "compare_utterance_text",
+      "faults": [
+        "compare_utterance_text"
+      ],
+      "commits": [
+        "2132dc8"
+      ],
+      "descriptions": [
+        "the harness compared the scenario sentence against the stored 'subject predicate object' triple, scoring 0.500 against a 0.6 bar"
+      ],
+      "scenarios_passed": 41,
+      "scenarios_passed_delta": -2,
+      "checks_failed": 10,
+      "checks_failed_delta": 9,
+      "checks_passed_delta": -10,
+      "checks_skipped_delta": 1,
+      "cross_validation_errors": 9,
+      "cross_validation_errors_delta": 0,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "silence_is_failure",
+      "faults": [
+        "silence_is_failure"
+      ],
+      "commits": [
+        "b779619"
+      ],
+      "descriptions": [
+        "an utterance the extractor found no fact in was reported as a storage failure rather than skipped"
+      ],
+      "scenarios_passed": 8,
+      "scenarios_passed_delta": -35,
+      "checks_failed": 39,
+      "checks_failed_delta": 38,
+      "checks_passed_delta": 26,
+      "checks_skipped_delta": -64,
+      "cross_validation_errors": 59,
+      "cross_validation_errors_delta": 50,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "script_decides_ownership",
+      "faults": [
+        "script_decides_ownership"
+      ],
+      "commits": [
+        "b779619"
+      ],
+      "descriptions": [
+        "criterion H was decided by the scenario script's phrasing rather than by who owns the text in memory.db"
+      ],
+      "scenarios_passed": 0,
+      "scenarios_passed_delta": -43,
+      "checks_failed": 51,
+      "checks_failed_delta": 50,
+      "checks_passed_delta": -59,
+      "checks_skipped_delta": 9,
+      "cross_validation_errors": 9,
+      "cross_validation_errors_delta": 0,
+      "criterion_h_verdict": "FAIL",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "reuse_run_number",
+      "faults": [
+        "reuse_run_number"
+      ],
+      "commits": [
+        "8a80d91"
+      ],
+      "descriptions": [
+        "every run reused run_number=1, so validation replayed earlier runs out of audit_log.db and manufactured cross-user findings"
+      ],
+      "scenarios_passed": 12,
+      "scenarios_passed_delta": -31,
+      "checks_failed": 32,
+      "checks_failed_delta": 31,
+      "checks_passed_delta": -40,
+      "checks_skipped_delta": 9,
+      "cross_validation_errors": 9,
+      "cross_validation_errors_delta": 0,
+      "criterion_h_verdict": "FAIL",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "literal_verdicts",
+      "faults": [
+        "literal_verdicts"
+      ],
+      "commits": [
+        "8a80d91"
+      ],
+      "descriptions": [
+        "the report writer asserted \"user_isolation\": \"PASS\" and isolation_pass_rate: 1.0 unconditionally, and decided audit completeness by events_played > 0 rather than by any audit check"
+      ],
+      "scenarios_passed": 42,
+      "scenarios_passed_delta": -1,
+      "checks_failed": 2,
+      "checks_failed_delta": 1,
+      "checks_passed_delta": -10,
+      "checks_skipped_delta": 9,
+      "cross_validation_errors": 10,
+      "cross_validation_errors_delta": 1,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "all_harness_faults",
+      "faults": [
+        "synthetic_fact_ids",
+        "compare_utterance_text",
+        "silence_is_failure",
+        "script_decides_ownership",
+        "reuse_run_number",
+        "literal_verdicts"
+      ],
+      "commits": [
+        "2132dc8",
+        "8a80d91",
+        "b779619"
+      ],
+      "descriptions": [
+        "/ingest was fire-and-forget, so the harness invented sim:<scenario>:<index> ids while the engine stored mem_* ids",
+        "the harness compared the scenario sentence against the stored 'subject predicate object' triple, scoring 0.500 against a 0.6 bar",
+        "an utterance the extractor found no fact in was reported as a storage failure rather than skipped",
+        "criterion H was decided by the scenario script's phrasing rather than by who owns the text in memory.db",
+        "every run reused run_number=1, so validation replayed earlier runs out of audit_log.db and manufactured cross-user findings",
+        "the report writer asserted \"user_isolation\": \"PASS\" and isolation_pass_rate: 1.0 unconditionally, and decided audit completeness by events_played > 0 rather than by any audit check"
+      ],
+      "scenarios_passed": 0,
+      "scenarios_passed_delta": -43,
+      "checks_failed": 103,
+      "checks_failed_delta": 102,
+      "checks_passed_delta": -44,
+      "checks_skipped_delta": -58,
+      "cross_validation_errors": 83,
+      "cross_validation_errors_delta": 74,
+      "criterion_h_verdict": "FAIL",
+      "criterion_g_verdict": "PASS"
+    },
+    {
+      "arm": "baseline_repeat",
+      "faults": [],
+      "commits": [],
+      "descriptions": [],
+      "scenarios_passed": 43,
+      "scenarios_passed_delta": 0,
+      "checks_failed": 3,
+      "checks_failed_delta": 2,
+      "checks_passed_delta": -13,
+      "checks_skipped_delta": 11,
+      "cross_validation_errors": 10,
+      "cross_validation_errors_delta": 1,
+      "criterion_h_verdict": "PASS",
+      "criterion_g_verdict": "PASS"
+    }
+  ]
+}

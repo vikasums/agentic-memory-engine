@@ -84,6 +84,15 @@ from .simulation_runner import (
     build_event_queue,
     classify_engine_error,
 )
+from .legacy_checker import (
+    ALL_FAULTS,
+    FAULT_COMMITS,
+    FAULT_DESCRIPTIONS,
+    LEGACY_PROFILE_CACHE_TTL_SECONDS,
+    LEGACY_RUN_NUMBER,
+    LegacyCheckerConfig,
+    legacy_criterion_payload,
+)
 from .validator_service import (
     DEFAULT_MATCH_THRESHOLD,
     DEFAULT_RETRIEVE_TOP_K,
@@ -163,6 +172,13 @@ __all__ = [
     "build_event_queue",
     "classify_engine_error",
     "ValidatorService",
+    "ALL_FAULTS",
+    "FAULT_COMMITS",
+    "FAULT_DESCRIPTIONS",
+    "LEGACY_PROFILE_CACHE_TTL_SECONDS",
+    "LEGACY_RUN_NUMBER",
+    "LegacyCheckerConfig",
+    "legacy_criterion_payload",
     "DEFAULT_MATCH_THRESHOLD",
     "DEFAULT_RETRIEVE_TOP_K",
     "IMPLICIT_OUTCOMES",
