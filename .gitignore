@@ -59,3 +59,8 @@ frontend/.env.local
 frontend/.env
 frontend/*.tsbuildinfo
 frontend/*.log
+
+# Benchmark datasets and the benchmark engine's own store (fetched, not authored)
+benchmarks/data/*.json
+benchmarks/data/bench_memory.db*
+benchmarks/data/bench_lancedb/
