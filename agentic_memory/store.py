@@ -45,7 +45,7 @@ class SQLiteLanceDBStore:
                 "Install them with `pip install agentic_memory[local]`"
             ) from e
 
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=30.0)
         self._init_sqlite()
 
         self.vector_db = lancedb.connect(self.lancedb_path)
@@ -67,6 +67,14 @@ class SQLiteLanceDBStore:
 
     def _init_sqlite(self):
         with self._lock:
+            try:
+                old_iso = self.conn.isolation_level
+                self.conn.isolation_level = None
+                self.conn.execute("PRAGMA busy_timeout=30000;")
+                self.conn.execute("PRAGMA journal_mode=WAL;")
+                self.conn.isolation_level = old_iso
+            except Exception:
+                pass
             with self.conn:
                 self.conn.execute("""
                     CREATE TABLE IF NOT EXISTS memory_keys (

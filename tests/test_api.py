@@ -1,8 +1,14 @@
+import tempfile
 import pytest
 from fastapi.testclient import TestClient
 from agentic_memory.main_api import app
 
-def test_api_endpoints():
+def test_api_endpoints(monkeypatch, tmp_path):
+    tmp_db = str(tmp_path / "api_test.db")
+    tmp_lance = str(tmp_path / "api_lancedb")
+    monkeypatch.setenv("MEMORY_DB_PATH", tmp_db)
+    monkeypatch.setenv("LANCEDB_PATH", tmp_lance)
+
     with TestClient(app) as client:
         # Test metrics endpoint
         response = client.get("/metrics")
